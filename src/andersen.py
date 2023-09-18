@@ -2,6 +2,7 @@ import andersen_ev
 
 SCHEDULE_SLOT = 4
 
+
 class AndersenA2:
     def __init__(self, username: str, password: str, device_name: str):
         self._a2 = andersen_ev.AndersenA2()
@@ -15,10 +16,11 @@ class AndersenA2:
 
 if __name__ == "__main__":
     import dotenv, os
+
     dotenv.load_dotenv()
     a2 = AndersenA2(
         os.getenv("ANDERSEN_USERNAME"),
         os.getenv("ANDERSEN_PASSWORD"),
-        os.getenv("ANDERSEN_DEVICE_NAME")
+        os.getenv("ANDERSEN_DEVICE_NAME"),
     )
     print(a2.get_charge_schedule())
