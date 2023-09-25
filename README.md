@@ -12,3 +12,19 @@ Renault electric vehicle.
 ## Current State
 This is currently experimental. Access to the three main components
 is implemented and a simple model and controller are in development.
+
+## Running
+* `python -m .venv`
+* `source .venv/bin/activate`
+* `pip install -r requirements.txt`
+* `uvicorn server:app`
+
+## Runtime Configuration
+The following environment variables are required:
+* `ANDERSEN_USERNAME` - login username for Andersen API
+* `ANDERSEN_PASSWORD` - login password for Andersen API
+* `ANDERSEN_DEVICE_NAME` - name of Andersen charger
+* `RENAULT_USERNAME` - login username for Renault API
+* `RENAULT_PASSWORD` - login password for Renault API
+* `RENAULT_REGISTRATION` - vehicle registration plate
+* `GIVENERGY_IPADDRESS` - local IP address of GivEnergy dongle
