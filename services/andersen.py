@@ -13,6 +13,16 @@ class AndersenA2:
     def get_charge_schedule(self):
         return self._a2.get_schedule(self._deviceId, SCHEDULE_SLOT)
 
+    def enable_charge(self):
+        self._a2.set_all_schedules_disabled(self._deviceId)
+        self._a2.user_unlock(self._deviceId)
+
+    def disable_charge(self):
+        self._a2.user_lock(self._deviceId)
+
+    def set_max_solar(self, max_solar: int):
+        self._a2.set_solar(self._deviceId, False, True, max_solar)
+
 
 if __name__ == "__main__":
     import dotenv, os
