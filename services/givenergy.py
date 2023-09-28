@@ -1,16 +1,20 @@
+import time
 from givenergy_modbus.client import GivEnergyClient
 from givenergy_modbus.model.inverter import Inverter
 from givenergy_modbus.model.plant import Plant
 from datetime import datetime, time, timedelta
+from time import sleep
 
 
 def retry_on_keyerror(f):
     def wrapped(*args, **kwargs):
-        while True:
+        for attempt in range(5):
             try:
                 return f(*args, **kwargs)
-            except KeyError:
-                pass
+            except KeyError as e:
+                sleep(1)
+                error = e
+        raise error
     return wrapped
 
 
