@@ -4,8 +4,8 @@ from .models import Intent, ChargeState, CurrentPower, Configuration
 
 MINIMUM_SOLAR_WATTS_TO_CHARGE_CAR = 1400
 MINIMUM_SOLAR_WATTS_TO_CHARGE_HOUSE = 500
-MAXIMUM_POLL_INTERVALS_ABOVE_MINIMUM_POWER = 6
-MAXIMUM_POLL_INTERVALS_BELOW_MINIMUM_POWER = 30
+MAXIMUM_POLL_INTERVALS_ABOVE_MINIMUM_POWER = 2
+MAXIMUM_POLL_INTERVALS_BELOW_MINIMUM_POWER = 10
 
 
 class ChargeSource(Enum):
@@ -46,7 +46,7 @@ class StateMachine:
         """
         Given an Intent, a ChargeState and CurrentPower, determine the new Configuration
         """
-        excess_power = current_power.solar_watts - current_power.consumption
+        excess_power = current_power.solar_watts - current_power.consumption_watts
 
         if charge_state.current_charge_car >= intent.target_charge_car:
             # Charge car until it reaches the target

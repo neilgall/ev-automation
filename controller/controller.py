@@ -4,7 +4,8 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from services.andersen import AndersenA2
 from services.givenergy import GivEnergy
 from renault_api.renault_vehicle import RenaultVehicle
-from model import CurrentPower, ChargeState, Configuration
+from model import Intent, CurrentPower, ChargeState, Configuration
+from model.statemachine import StateMachine
 
 
 logger = logging.getLogger(__name__)
@@ -24,8 +25,10 @@ class Controller:
         self._givenergy = givenergy
         self._andersen = andersen
         self._vehicle = vehicle
+        self._intent = Intent(target_charge_car=80, target_charge_house=100, charge_car_regardless=False)
+        self._statemachine = StateMachine()
         self._scheduler = AsyncIOScheduler()
-        self._monitor_job = self._scheduler.add_job(self._monitor, "interval", seconds=10)
+        self._monitor_job = self._scheduler.add_job(self._monitor, "interval", seconds=30)
         self._scheduler.start()
         logger.info("Controller started")
 
@@ -46,17 +49,22 @@ class Controller:
         return CurrentPower(
             solar_watts = self._givenergy.solar_watts(),
             battery_watts = self._givenergy.battery_watts(),
+            consumption_watts = self._givenergy.consumption_watts(),
             grid_import_watts = self._givenergy.grid_import_watts(),
             grid_export_watts = self._givenergy.grid_export_watts(),
             grid_offpeak = self._givenergy.grid_offpeak()
         )
 
-    def _monitor(self):
+    async def _monitor(self):
         """
         Periodic monitor
         """
-        current_charge_house = self._givenergy.current_charge()
-        logger.info(f"house: {current_charge_house}%")
+        config = self._statemachine.update(
+            self._intent,
+            await self.charge_state(),
+            await self.current_power()
+        )
+        logger.info("config: " + str(config))
 
     def apply_configuration(self, config: Configuration):
         """

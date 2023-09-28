@@ -31,7 +31,7 @@ def sufficient_solar_for_car() -> CurrentPower:
     return CurrentPower(
         solar_watts = 2500,
         battery_watts = 0,
-        consumption = 500,
+        consumption_watts = 500,
         grid_import_watts = 0,
         grid_export_watts = 2000,
         grid_offpeak = False
@@ -42,7 +42,7 @@ def insufficient_solar_for_car() -> CurrentPower:
     return CurrentPower(
         solar_watts = 1200,
         battery_watts = 0,
-        consumption = 500,
+        consumption_watts = 500,
         grid_import_watts = 0,
         grid_export_watts = 700,
         grid_offpeak = False
@@ -55,8 +55,8 @@ def test_start_car_charging_when_solar_is_sufficient(
     half_charged,
     sufficient_solar_for_car
 ):
-    # should remain in house charge state for 5 updates
-    for i in range(5):
+    # should remain in house charge state for 1 updates
+    for i in range(1):
         config = nothing_charging.update(normal_intent, half_charged, sufficient_solar_for_car)
         assert config == Configuration(
             target_charge_car = normal_intent.target_charge_car,
@@ -85,8 +85,8 @@ def test_stop_car_charging_when_solar_is_insufficient(
     half_charged,
     insufficient_solar_for_car
 ):
-    # should remain in mixed charge state for 29 updates
-    for i in range(29):
+    # should remain in mixed charge state for 9 updates
+    for i in range(9):
         config = car_charging_from_solar.update(normal_intent, half_charged, insufficient_solar_for_car)
         assert config == Configuration(
             target_charge_car = normal_intent.target_charge_car,

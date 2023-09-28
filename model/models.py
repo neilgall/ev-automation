@@ -15,7 +15,7 @@ class ChargeState(BaseModel):
 class CurrentPower(BaseModel):
     solar_watts: int
     battery_watts: int
-    consumption: int
+    consumption_watts: int
     grid_import_watts: int
     grid_export_watts: int
     grid_offpeak: bool

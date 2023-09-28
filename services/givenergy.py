@@ -43,6 +43,11 @@ class GivEnergy:
         return self._plant.inverter.p_battery
 
     @retry_on_keyerror
+    def consumption_watts(self) -> int:
+        self._refresh()
+        return self._plant.inverter.p_load_demand
+
+    @retry_on_keyerror
     def grid_import_watts(self) -> int:
         self._refresh()
         return max(0, self._plant.inverter.p_grid_apparent)
