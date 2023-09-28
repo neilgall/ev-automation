@@ -53,6 +53,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+
 @app.get("/charge")
 async def get_charge(request: Request) -> ChargeState:
     return await request.state.controller.charge_state()
