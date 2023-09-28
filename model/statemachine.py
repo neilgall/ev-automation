@@ -5,7 +5,7 @@ from .models import Intent, ChargeState, CurrentPower, Configuration
 MINIMUM_SOLAR_WATTS_TO_CHARGE_CAR = 1400
 MINIMUM_SOLAR_WATTS_TO_CHARGE_HOUSE = 500
 MAXIMUM_POLL_INTERVALS_ABOVE_MINIMUM_POWER = 6
-MAXIMUM_POLL_INTERVALS_BELOW_MINIMUM_POWER = 60
+MAXIMUM_POLL_INTERVALS_BELOW_MINIMUM_POWER = 30
 
 
 class ChargeSource(Enum):
@@ -32,9 +32,9 @@ class StateMachine:
     """
     A state machine controlling the overall system
     """
-    def __init__(self):
-        self._car = ChargeSource.NONE
-        self._house = ChargeSource.NONE
+    def __init__(self, *, car=ChargeSource.NONE, house=ChargeSource.NONE):
+        self._car = car
+        self._house = house
         self._sufficient_solar_for_car = Hysteresis(MAXIMUM_POLL_INTERVALS_ABOVE_MINIMUM_POWER)
         self._insufficient_solar_for_car = Hysteresis(MAXIMUM_POLL_INTERVALS_BELOW_MINIMUM_POWER)
 
@@ -89,11 +89,16 @@ class StateMachine:
                     elif current_power.grid_offpeak:
                         self._house = ChargeSource.GRID
 
+        if self._car == ChargeSource.SOLAR and excess_power > MINIMUM_SOLAR_WATTS_TO_CHARGE_CAR:
+            car_max_solar = 100
+        else:
+            car_max_solar = 0
+                
         return Configuration(
             target_charge_car = intent.target_charge_car,
             target_charge_house = intent.target_charge_house,
             house_charge_enable = self._house == ChargeSource.SOLAR,
             house_charge_max_watts = 2400,
             car_charge_enable = self._car != ChargeSource.NONE,
-            car_charge_max_solar = 100 if self._car == ChargeSource.SOLAR else 0
+            car_charge_max_solar = car_max_solar
         )

@@ -1,10 +1,14 @@
 import pytest
 from .models import Intent, ChargeState, CurrentPower, Configuration
-from .statemachine import StateMachine
+from .statemachine import StateMachine, ChargeSource
 
 @pytest.fixture
-def state_machine() -> StateMachine:
+def nothing_charging() -> StateMachine:
     return StateMachine()
+
+@pytest.fixture
+def car_charging_from_solar() -> StateMachine:
+    return StateMachine(car=ChargeSource.SOLAR)
 
 
 @pytest.fixture
@@ -33,15 +37,27 @@ def sufficient_solar_for_car() -> CurrentPower:
         grid_offpeak = False
     )
 
-def test_sufficient_solar_for_car_charging(
-    state_machine,
+@pytest.fixture
+def insufficient_solar_for_car() -> CurrentPower:
+    return CurrentPower(
+        solar_watts = 1200,
+        battery_watts = 0,
+        consumption = 500,
+        grid_import_watts = 0,
+        grid_export_watts = 700,
+        grid_offpeak = False
+    )
+
+
+def test_start_car_charging_when_solar_is_sufficient(
+    nothing_charging,
     normal_intent,
     half_charged,
     sufficient_solar_for_car
 ):
     # should remain in house charge state for 5 updates
     for i in range(5):
-        config = state_machine.update(normal_intent, half_charged, sufficient_solar_for_car)
+        config = nothing_charging.update(normal_intent, half_charged, sufficient_solar_for_car)
         assert config == Configuration(
             target_charge_car = normal_intent.target_charge_car,
             target_charge_house = normal_intent.target_charge_house,
@@ -52,7 +68,7 @@ def test_sufficient_solar_for_car_charging(
         )
 
     # should enter car charging state on 6th update
-    config = state_machine.update(normal_intent, half_charged, sufficient_solar_for_car)
+    config = nothing_charging.update(normal_intent, half_charged, sufficient_solar_for_car)
     assert config == Configuration(
         target_charge_car = normal_intent.target_charge_car,
         target_charge_house = normal_intent.target_charge_house,
@@ -60,4 +76,34 @@ def test_sufficient_solar_for_car_charging(
         house_charge_max_watts = 2400,
         car_charge_enable = True,
         car_charge_max_solar = 100
+    )
+
+
+def test_stop_car_charging_when_solar_is_insufficient(
+    car_charging_from_solar,
+    normal_intent,
+    half_charged,
+    insufficient_solar_for_car
+):
+    # should remain in mixed charge state for 29 updates
+    for i in range(29):
+        config = car_charging_from_solar.update(normal_intent, half_charged, insufficient_solar_for_car)
+        assert config == Configuration(
+            target_charge_car = normal_intent.target_charge_car,
+            target_charge_house = normal_intent.target_charge_house,
+            house_charge_enable = False,
+            house_charge_max_watts = 2400,
+            car_charge_enable = True,
+            car_charge_max_solar = 0
+        )
+
+    # car will stop charging on next update
+    config = car_charging_from_solar.update(normal_intent, half_charged, insufficient_solar_for_car)
+    assert config == Configuration(
+        target_charge_car = normal_intent.target_charge_car,
+        target_charge_house = normal_intent.target_charge_house,
+        house_charge_enable = True,
+        house_charge_max_watts = 2400,
+        car_charge_enable = False,
+        car_charge_max_solar = 0
     )
