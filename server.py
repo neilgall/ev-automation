@@ -7,7 +7,7 @@ from controller.controller import Controller
 from model import CurrentPower, ChargeState
 from services.andersen import AndersenA2
 from services.givenergy import GivEnergy
-from services.renault import connect_vehicle
+from services.renault import Renault
 
 dotenv.load_dotenv()
 app = FastAPI()
@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI):
         require_env("GIVENERGY_IPADDRESS")
     )
     async with aiohttp.ClientSession() as websession:
-        vehicle = await connect_vehicle(
+        vehicle = await Renault.connect(
             websession,
             require_env("RENAULT_USERNAME"),
             require_env("RENAULT_PASSWORD"),
