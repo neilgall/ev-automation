@@ -1,11 +1,5 @@
 import time
 from givenergy_modbus.client import GivEnergyClient
-from givenergy_modbus.client.commands import (
-    set_enable_charge,
-    set_enable_discharge,
-    set_charge_target,
-    set_charge_rate
-)
 from givenergy_modbus.model.inverter import Inverter
 from givenergy_modbus.model.plant import Plant
 from datetime import datetime, time, timedelta
@@ -16,7 +10,7 @@ def retry_on_keyerror(f):
     def wrapped(self, *args, **kwargs):
         for attempt in range(5):
             try:
-                return f(*args, **kwargs)
+                return f(self, *args, **kwargs)
             except KeyError as e:
                 error = e
                 self._last_refresh = datetime.fromordinal(1)
@@ -75,22 +69,22 @@ class GivEnergy:
         return charge_slot_start < now < charge_slot_end
 
     async def enable_charge(self):
-        await self._client.one_shot_command(set_enable_charge(True))
+        self._client.enable_charge()
 
     async def disable_charge(self):
-        await self._client.one_shot_command(set_enable_charge(False))
+        self._client.disable_charge()
 
     async def enable_discharge(self):
-        await self._client.one_shot_command(set_enable_discharge(True))
+        self._client.set_mode_dynamic()
 
     async def disable_discharge(self):
-        await self._client.one_shot_command(set_enable_discharge(False))
+        self._client.disable_discharge()
 
     async def set_charge_target(self, target: int):
-        await self._client.one_shot_command(set_charge_target(target))
+        self._client.enable_charge_target(target)
 
     async def set_charge_rate(self, rate: int):
-        await self._client.one_shot_command(set_charge_rate(rate))
+        self._client.set_battery_charge_limit(rate / 5200)
 
 
 if __name__ == "__main__":
