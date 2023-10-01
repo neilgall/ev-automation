@@ -70,14 +70,10 @@ class Controller:
         """
         Apply a Configuration
         """
-        if config.house_charge_enable:
-            self._givenergy.enable_charge_target(config.target_charge_house)
+        self._givenergy.set_charge_target(config.target_charge_house)
+        self._givenergy.set_charge_rate(config.house_charge_max_watts)
+        if config.car_charge_enable:
             self._givenergy.enable_charge()
-            self._givenergy.disable_discharge()
-            self._andersen.disable_charge()
-
-        elif config.car_charge_enable:
-            self._givenergy.disable_charge()
             self._givenergy.disable_discharge()
             self._andersen.set_max_solar(config.car_charge_max_solar)
             self._andersen.enable_charge()

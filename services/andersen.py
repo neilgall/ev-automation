@@ -23,7 +23,6 @@ class AndersenA2:
     def set_max_solar(self, max_solar: int):
         self._a2.set_solar(self._deviceId, False, True, max_solar)
 
-
 if __name__ == "__main__":
     import dotenv, os
 
