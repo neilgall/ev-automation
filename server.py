@@ -3,7 +3,7 @@ import asyncio
 import dotenv
 import os
 from fastapi import FastAPI, Request
-from controller.controller import Controller
+from controller import Controller
 from model import CurrentPower, ChargeState
 from services.andersen import AndersenA2
 from services.givenergy import GivEnergy

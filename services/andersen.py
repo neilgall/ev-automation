@@ -21,7 +21,7 @@ class AndersenA2:
         self._a2.user_lock(self._deviceId)
 
     def set_max_solar(self, max_solar: int):
-        self._a2.set_solar(self._deviceId, False, True, max_solar)
+        self._a2.set_solar(self._deviceId, False, False, 100 - max_solar)
 
 if __name__ == "__main__":
     import dotenv, os

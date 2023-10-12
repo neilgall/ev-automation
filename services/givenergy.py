@@ -34,7 +34,7 @@ class GivEnergy:
         return self._plant
 
     @retry_on_keyerror
-    async def current_charge(self) -> int:
+    def current_charge(self) -> int:
         plant = self._refresh()
         return plant.inverter.battery_percent
 
@@ -70,23 +70,23 @@ class GivEnergy:
         now = datetime.now().time()
         return charge_slot_start < now < charge_slot_end
 
-    async def enable_charge(self):
+    def enable_charge(self):
         self._client.enable_charge()
 
-    async def disable_charge(self):
+    def disable_charge(self):
         self._client.disable_charge()
 
-    async def enable_discharge(self):
+    def enable_discharge(self):
         self._client.set_mode_dynamic()
 
-    async def disable_discharge(self):
+    def disable_discharge(self):
         self._client.disable_discharge()
 
-    async def set_charge_target(self, target: int):
+    def set_charge_target(self, target: int):
         self._client.enable_charge_target(target)
 
-    async def set_charge_rate(self, rate: int):
-        self._client.set_battery_charge_limit(rate / 5200)
+    def set_charge_rate(self, rate: int):
+        self._client.set_battery_charge_limit(rate // 52)
 
 
 if __name__ == "__main__":

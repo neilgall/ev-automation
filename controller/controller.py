@@ -25,12 +25,15 @@ class Controller:
         self._givenergy = givenergy
         self._andersen = andersen
         self._vehicle = vehicle
+        logger.info("Controller initialised")
+
+    def start_monitoring(self):
         self._intent = Intent(target_charge_car=80, target_charge_house=100, charge_car_regardless=False)
         self._statemachine = StateMachine()
         self._scheduler = AsyncIOScheduler()
         self._monitor_job = self._scheduler.add_job(self._monitor, "interval", seconds=30)
         self._scheduler.start()
-        logger.info("Controller started")
+        logger.info("Monitoring started")
 
     async def charge_state(self) -> ChargeState:
         """
@@ -82,3 +85,5 @@ class Controller:
             self._givenergy.enable_charge()
             self._givenergy.enable_discharge()
             self._andersen.disable_charge()
+
+        logger.info(f"Applied configuration {config}")
