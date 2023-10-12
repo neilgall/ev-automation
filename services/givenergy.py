@@ -13,8 +13,8 @@ def retry_on_keyerror(f):
                 return f(self, *args, **kwargs)
             except KeyError as e:
                 error = e
-                self._last_refresh = datetime.fromordinal(1)
-                time.sleep(1)
+                self._last_refresh = datetime.fromtimestamp(0)
+                sleep(1)
         raise error
     return wrapped
 
@@ -22,49 +22,51 @@ def retry_on_keyerror(f):
 class GivEnergy:
     def __init__(self, ip_address: str):
         self._client = GivEnergyClient(ip_address)
-        self._plant = Plant(number_batteries=1)
-        self._last_refresh = datetime.fromordinal(1)
+        self._last_refresh = datetime.fromtimestamp(0)
 
-    async def _refresh(self) -> Plant:
+    def _refresh(self) -> Plant:
         now = datetime.now()
         if now - self._last_refresh > timedelta(seconds=10):
-            await self._client.refresh_plant(self._plant, full_refresh=True)
+            plant = Plant(number_batteries=1)
+            self._client.refresh_plant(plant, full_refresh=True)
             self._last_refresh = now
+            self._plant = plant
+        return self._plant
 
     @retry_on_keyerror
     async def current_charge(self) -> int:
-        await self._refresh()
-        return self._plant.inverter.battery_percent
+        plant = self._refresh()
+        return plant.inverter.battery_percent
 
     @retry_on_keyerror
-    async def solar_watts(self) -> int:
-        await self._refresh()
-        return self._plant.inverter.p_pv1 + self._plant.inverter.p_pv2
+    def solar_watts(self) -> int:
+        plant = self._refresh()
+        return plant.inverter.p_pv1 + self._plant.inverter.p_pv2
 
     @retry_on_keyerror
-    async def battery_watts(self) -> int:
-        await self._refresh()
-        return self._plant.inverter.p_battery
+    def battery_watts(self) -> int:
+        plant = self._refresh()
+        return plant.inverter.p_battery
 
     @retry_on_keyerror
-    async def consumption_watts(self) -> int:
-        await self._refresh()
-        return self._plant.inverter.p_load_demand
+    def consumption_watts(self) -> int:
+        plant = self._refresh()
+        return plant.inverter.p_load_demand
 
     @retry_on_keyerror
-    async def grid_import_watts(self) -> int:
-        await self._refresh()
-        return max(0, self._plant.inverter.p_grid_apparent)
+    def grid_import_watts(self) -> int:
+        plant = self._refresh()
+        return max(0, plant.inverter.p_grid_apparent)
 
     @retry_on_keyerror
-    async def grid_export_watts(self) -> int:
-        await self._refresh()
-        return max(0, -self._plant.inverter.p_grid_apparent)
+    def grid_export_watts(self) -> int:
+        plant = self._refresh()
+        return max(0, -plant.inverter.p_grid_apparent)
 
     @retry_on_keyerror
-    async def grid_offpeak(self) -> bool:
-        await self._refresh()
-        charge_slot_start, charge_slot_end = self._plant.inverter.charge_slot_1
+    def grid_offpeak(self) -> bool:
+        plant = self._refresh()
+        charge_slot_start, charge_slot_end = plant.inverter.charge_slot_1
         now = datetime.now().time()
         return charge_slot_start < now < charge_slot_end
 

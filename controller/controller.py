@@ -39,7 +39,7 @@ class Controller:
         car_battery_status = await self._vehicle.get_battery_status()
         return ChargeState(
             current_charge_car = car_battery_status.batteryLevel,
-            current_charge_house = self._givenergy.current_charge()
+            current_charge_house = await self._givenergy.current_charge()
         )
 
     async def current_power(self) -> CurrentPower:
