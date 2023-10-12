@@ -88,8 +88,6 @@ async def main():
         msh.add_job(CronJob(name="daytime").every().day.at("11:00").go(daytime))
         msh.add_job(CronJob(name="evening").every().day.at("16:30").go(evening))
 
-        daytime()
-
         await msh.start()
 
 try:
