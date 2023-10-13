@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 import dotenv
 import os
+import time
 from async_cron.job import CronJob
 from async_cron.schedule import Scheduler
 from controller import Controller
@@ -82,12 +83,12 @@ async def main():
                 car_charge_max_solar=0
             ))
 
+        dst = time.localtime().tm_isdst
         msh = Scheduler(locale="en_GB")
-        msh.add_job(CronJob(name="offpeak").every().day.at("00:30").go(offpeak))
-        msh.add_job(CronJob(name="morning").every().day.at("04:30").go(morning))
-        msh.add_job(CronJob(name="daytime").every().day.at("11:00").go(daytime))
-        msh.add_job(CronJob(name="evening").every().day.at("16:30").go(evening))
-
+        msh.add_job(CronJob(name="offpeak").day.at("23:30" if dst else "00:30").go(offpeak))
+        msh.add_job(CronJob(name="morning").day.at("03:30" if dst else "04:30").go(morning))
+        msh.add_job(CronJob(name="daytime").day.at("10:00" if dst else "11:00").go(daytime))
+        msh.add_job(CronJob(name="evening").day.at("15:30" if dst else "16:30").go(evening))
         await msh.start()
 
 try:
