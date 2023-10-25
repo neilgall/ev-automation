@@ -6,6 +6,7 @@ from services.givenergy import GivEnergy
 from renault_api.renault_vehicle import RenaultVehicle
 from model import Intent, CurrentPower, ChargeState, Configuration
 from model.statemachine import StateMachine
+from typing import Optional
 
 
 logger = logging.getLogger(__name__)
@@ -18,9 +19,9 @@ logger.addHandler(handler)
 class Controller:
     def __init__(
         self, *,
-        givenergy: GivEnergy,
-        andersen: AndersenA2,
-        vehicle: RenaultVehicle
+        givenergy: Optional[GivEnergy],
+        andersen: Optional[AndersenA2],
+        vehicle: Optional[RenaultVehicle]
     ):
         self._givenergy = givenergy
         self._andersen = andersen
@@ -73,17 +74,25 @@ class Controller:
         """
         Apply a Configuration
         """
-        self._givenergy.set_charge_target(config.target_charge_house)
-        self._givenergy.set_charge_rate(config.house_charge_max_watts)
+        if self._givenergy:
+            self._givenergy.set_charge_target(config.target_charge_house)
+            self._givenergy.set_charge_rate(config.house_charge_max_watts)
+        
         if config.car_charge_enable:
-            self._givenergy.enable_charge()
-            self._givenergy.disable_discharge()
-            self._andersen.set_max_solar(config.car_charge_max_solar)
-            self._andersen.enable_charge()
+            if self._givenergy:
+                self._givenergy.enable_charge()
+                self._givenergy.disable_discharge()
+
+            if self._andersen:
+                self._andersen.set_max_solar(config.car_charge_max_solar)
+                self._andersen.enable_charge()
         
         else:
-            self._givenergy.enable_charge()
-            self._givenergy.enable_discharge()
-            self._andersen.disable_charge()
+            if self._givenergy:
+                self._givenergy.enable_charge()
+                self._givenergy.enable_discharge()
+
+            if self._andersen:
+                self._andersen.disable_charge()
 
         logger.info(f"Applied configuration {config}")

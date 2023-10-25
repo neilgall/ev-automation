@@ -31,65 +31,55 @@ async def main():
         require_env("ANDERSEN_PASSWORD"),
         require_env("ANDERSEN_DEVICE_NAME"),
     )
-    givenergy = GivEnergy(
-        require_env("GIVENERGY_IPADDRESS")
-    )
-    async with aiohttp.ClientSession() as websession:
-        vehicle = await Renault.connect(
-            websession,
-            require_env("RENAULT_USERNAME"),
-            require_env("RENAULT_PASSWORD"),
-            require_env("RENAULT_REGISTRATION"),
-        )
-        controller = Controller(givenergy=givenergy, andersen=andersen, vehicle=vehicle)
+    controller = Controller(givenergy=None, andersen=andersen, vehicle=None)
 
-        def offpeak():
-            controller.apply_configuration(Configuration(
-                target_charge_car=80,
-                target_charge_house=100,
-                house_charge_enable=True,
-                house_charge_max_watts=1300,
-                car_charge_enable=True,
-                car_charge_max_solar=0
-            ))
+    def offpeak():
+        controller.apply_configuration(Configuration(
+            target_charge_car=80,
+            target_charge_house=100,
+            house_charge_enable=True,
+            house_charge_max_watts=1300,
+            car_charge_enable=True,
+            car_charge_max_solar=0
+        ))
 
-        def morning():
-            controller.apply_configuration(Configuration(
-                target_charge_car=80,
-                target_charge_house=100,
-                house_charge_enable=True,
-                house_charge_max_watts=2600,
-                car_charge_enable=False,
-                car_charge_max_solar=0
-            ))
+    def morning():
+        controller.apply_configuration(Configuration(
+            target_charge_car=80,
+            target_charge_house=100,
+            house_charge_enable=True,
+            house_charge_max_watts=2600,
+            car_charge_enable=False,
+            car_charge_max_solar=0
+        ))
 
-        def daytime():
-            controller.apply_configuration(Configuration(
-                target_charge_car=80,
-                target_charge_house=100,
-                house_charge_enable=True,
-                house_charge_max_watts=2600,
-                car_charge_enable=True,
-                car_charge_max_solar=100
-            ))
+    def daytime():
+        controller.apply_configuration(Configuration(
+            target_charge_car=80,
+            target_charge_house=100,
+            house_charge_enable=True,
+            house_charge_max_watts=2600,
+            car_charge_enable=True,
+            car_charge_max_solar=100
+        ))
 
-        def evening():
-            controller.apply_configuration(Configuration(
-                target_charge_car=80,
-                target_charge_house=100,
-                house_charge_enable=True,
-                house_charge_max_watts=2600,
-                car_charge_enable=False,
-                car_charge_max_solar=0
-            ))
+    def evening():
+        controller.apply_configuration(Configuration(
+            target_charge_car=80,
+            target_charge_house=100,
+            house_charge_enable=True,
+            house_charge_max_watts=2600,
+            car_charge_enable=False,
+            car_charge_max_solar=0
+        ))
 
-        dst = time.localtime().tm_isdst
-        msh = Scheduler(locale="en_GB")
-        msh.add_job(CronJob(name="offpeak").day.at("23:30" if dst else "00:30").go(offpeak))
-        msh.add_job(CronJob(name="morning").day.at("03:30" if dst else "04:30").go(morning))
-        msh.add_job(CronJob(name="daytime").day.at("10:00" if dst else "11:00").go(daytime))
-        msh.add_job(CronJob(name="evening").day.at("15:30" if dst else "16:30").go(evening))
-        await msh.start()
+    dst = time.localtime().tm_isdst
+    msh = Scheduler(locale="en_GB")
+    msh.add_job(CronJob(name="offpeak").day.at("23:30" if dst else "00:30").go(offpeak))
+    msh.add_job(CronJob(name="morning").day.at("03:30" if dst else "04:30").go(morning))
+    msh.add_job(CronJob(name="daytime").day.at("10:00" if dst else "11:00").go(daytime))
+    msh.add_job(CronJob(name="evening").day.at("15:30" if dst else "16:30").go(evening))
+    await msh.start()
 
 try:
     loop = asyncio.get_event_loop()
