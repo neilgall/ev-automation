@@ -10,21 +10,20 @@ Renault electric vehicle.
 - Provide an API which can be invoked from an Alexa skill to give voice control
 
 ## Current State
-This is currently experimental. Access to the three main components
-is implemented and a simple model and controller are in development.
+I've scaled back the goals for the winter when there's not enough solar
+energy to charge the vehicle anyway. Right now it just enables grid charging
+at offpeak hours. This will serve to check whether the end/start of DST is
+handled correctly, and if the Andersen session needs reauthenticated over
+time.
 
 ## Running
 * `python -m .venv`
 * `source .venv/bin/activate`
 * `pip install -r requirements.txt`
-* `uvicorn server:app`
+* `python main.py`
 
 ## Runtime Configuration
 The following environment variables are required:
 * `ANDERSEN_USERNAME` - login username for Andersen API
 * `ANDERSEN_PASSWORD` - login password for Andersen API
 * `ANDERSEN_DEVICE_NAME` - name of Andersen charger
-* `RENAULT_USERNAME` - login username for Renault API
-* `RENAULT_PASSWORD` - login password for Renault API
-* `RENAULT_REGISTRATION` - vehicle registration plate
-* `GIVENERGY_IPADDRESS` - local IP address of GivEnergy dongle
