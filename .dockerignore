@@ -1,5 +1,8 @@
 .git
 .gitignore
 .pytest_cache
+.env
 __pycache__
 Dockerfile
+*.md
+requirements.in

@@ -1,0 +1,10 @@
+aiohttp
+andersen-ev
+async-cron
+gql
+pycognito
+pytest
+python-dotenv
+requests
+requests_toolbelt
+websockets
