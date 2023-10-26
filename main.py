@@ -2,12 +2,18 @@ import andersen_ev
 import aiohttp
 import asyncio
 import dotenv
+import logging
 import os
 from async_cron.job import CronJob
 from async_cron.schedule import Scheduler
 from dataclasses import dataclass
 from datetime import datetime, time
 from typing import Callable
+
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S')
 
 dotenv.load_dotenv()
 
@@ -36,7 +42,7 @@ class AndersenA2:
         self._deviceId = self._device["id"]
 
     def configure(self, config: Config):
-        print(f"{datetime.now().isoformat()} {config}")
+        logging.info(f"configure {config}")
         if config.charge:
             self._a2.set_solar(self._deviceId, False, False, 100 - config.max_solar)
             self._a2.set_all_schedules_disabled(self._deviceId)
@@ -72,6 +78,7 @@ async def main():
 
     controller = Controller(andersen.configure)
     controller.update(datetime.now().time())
+    logging.info("Controller started")
 
     def update():
         controller.update(datetime.now().time())
