@@ -70,13 +70,15 @@ class Controller:
 
 
 async def main():
-    andersen = AndersenA2(
-        require_env("ANDERSEN_USERNAME"),
-        require_env("ANDERSEN_PASSWORD"),
-        require_env("ANDERSEN_DEVICE_NAME"),
-    )
+    def configure(config: Config):
+        andersen = AndersenA2(
+            require_env("ANDERSEN_USERNAME"),
+            require_env("ANDERSEN_PASSWORD"),
+            require_env("ANDERSEN_DEVICE_NAME"),
+        )
+        andersen.configure(config)
 
-    controller = Controller(andersen.configure)
+    controller = Controller(configure)
     controller.update(datetime.now().time())
     logging.info("Controller started")
 
