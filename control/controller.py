@@ -34,19 +34,16 @@ class Controller:
         required_charge_kwh = BATTERY_CAPACITY_KWH * (self._intent.charge_to - state.current_charge) / 100
         required_charge_minutes = int(required_charge_kwh / CHARGE_RATE_KW * 60) + 30
 
-        print(f"required_charge_minutes={required_charge_minutes}")
-
         if self._intent.charge_by is None:
-            return OFFPEAK_START <= state.now < OFFPEAK_END
+            return OFFPEAK_START <= state.now.time() < OFFPEAK_END
 
         start = self._intent.charge_by - timedelta(minutes = required_charge_minutes)
-        print(f"start={start}")
 
-        if OFFPEAK_START < start.time():
+        if OFFPEAK_START < start.time() < OFFPEAK_END:
             # charge earlier to use offpeak power
-            return OFFPEAK_START < state.now
+            return OFFPEAK_START <= state.now.time()
         
-        return start.date() < datetime.today() or start.time() < state.now
+        return start <= state.now
 
     async def update(self, state: State):
         config = self._next(state)

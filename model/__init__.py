@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, time
+from datetime import datetime
 from typing import Optional
 
 
@@ -13,10 +13,10 @@ class Config:
 class Intent:
     charge_to: int
     charge_by: Optional[datetime]
-    
+
 
 @dataclass
 class State:
     plugged_in: bool
     current_charge: int
-    now: time
+    now: datetime

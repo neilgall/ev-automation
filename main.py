@@ -68,7 +68,7 @@ async def main():
             state = State(
                 plugged_in=bool(battery.plugStatus),
                 current_charge=battery.batteryLevel,
-                now=datetime.now().time()
+                now=datetime.now()
             )
             await controller.update(state)
 
