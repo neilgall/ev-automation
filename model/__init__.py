@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import time
+from datetime import datetime, time
 from typing import Optional
 
 
@@ -12,8 +12,8 @@ class Config:
 @dataclass
 class Intent:
     charge_to: int
-    offpeak_only: bool
-
+    charge_by: Optional[datetime]
+    
 
 @dataclass
 class State:
