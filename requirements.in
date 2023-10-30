@@ -2,6 +2,7 @@ aiohttp
 andersen-ev
 async-cron
 gql
+pip-tools
 pycognito
 pytest
 python-dotenv
