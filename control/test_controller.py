@@ -1,7 +1,8 @@
 import pytest
-from main import Config, Controller
 from datetime import time
+from model import Config
 from typing import List
+from .controller import Controller
 
 
 @pytest.fixture
