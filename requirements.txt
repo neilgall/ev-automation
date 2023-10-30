@@ -46,6 +46,8 @@ click==8.1.7
     # via pip-tools
 cryptography==41.0.5
     # via python-jose
+dateparser==1.1.8
+    # via -r requirements.in
 ecdsa==0.18.0
     # via python-jose
 envs==1.4
@@ -100,17 +102,26 @@ pyjwt==2.8.0
 pyproject-hooks==1.0.0
     # via build
 pytest==7.4.3
+    # via
+    #   -r requirements.in
+    #   pytest-asyncio
+pytest-asyncio==0.21.1
     # via -r requirements.in
 python-dateutil==2.8.2
     # via
     #   arrow
     #   botocore
+    #   dateparser
 python-dotenv==1.0.0
     # via -r requirements.in
 python-jose[cryptography]==3.3.0
     # via
     #   pycognito
     #   python-jose
+pytz==2023.3.post1
+    # via dateparser
+regex==2023.10.3
+    # via dateparser
 renault-api==0.2.0
     # via -r requirements.in
 requests==2.31.0
@@ -128,12 +139,16 @@ six==1.16.0
     # via
     #   ecdsa
     #   python-dateutil
+tabulate==0.9.0
+    # via -r requirements.in
 types-python-dateutil==2.8.19.14
     # via arrow
 typing-extensions==4.8.0
     # via typing-inspect
 typing-inspect==0.9.0
     # via marshmallow-dataclass
+tzlocal==5.2
+    # via dateparser
 urllib3==2.0.7
     # via
     #   botocore

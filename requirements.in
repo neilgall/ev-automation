@@ -3,12 +3,15 @@ andersen-ev
 async-cron
 asyncio
 AWSIoTPythonSDK
+dateparser
 gql
 pip-tools
 pycognito
 pytest
+pytest-asyncio
 python-dotenv
 renault-api
 requests
 requests_toolbelt
+tabulate
 websockets

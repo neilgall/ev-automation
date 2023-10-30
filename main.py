@@ -8,7 +8,10 @@ from async_cron.job import CronJob
 from async_cron.schedule import Scheduler
 from dataclasses import dataclass
 from datetime import datetime, time
-from typing import Callable
+from renault_api.renault_client import RenaultClient
+from renault_api.renault_vehicle import RenaultVehicle
+from typing import Awaitable, Callable
+
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -51,8 +54,47 @@ class AndersenA2:
             self._a2.user_lock(self._deviceId)
 
 
+def get_andersen_a2() -> AndersenA2:
+    return AndersenA2(
+        require_env("ANDERSEN_USERNAME"),
+        require_env("ANDERSEN_PASSWORD"),
+        require_env("ANDERSEN_DEVICE_NAME"),
+    )
+
+async def renault_vehicle(
+    session: aiohttp.ClientSession,
+    username: str,
+    password: str,
+    registration: str
+) -> RenaultVehicle:
+    client = RenaultClient(websession=session, locale="fr_FR")
+    await client.session.login(username, password)
+    person = await client.get_person()
+    account_id = next(
+        account.accountId
+        for account in person.accounts
+        if account.accountType == "MYRENAULT"
+    )
+    account = await client.get_api_account(account_id)
+    vehicles = await account.get_vehicles()
+    vin = next(
+        vehicle.vin
+        for vehicle in vehicles.vehicleLinks
+        if vehicle.vehicleDetails.registrationNumber == registration
+    )
+    return await account.get_api_vehicle(vin)
+
+
+async def get_renault_vehicle(session: aiohttp.ClientSession) -> RenaultVehicle:
+    return await renault_vehicle(
+        session,
+        require_env("RENAULT_USERNAME"),
+        require_env("RENAULT_PASSWORD"),
+        require_env("RENAULT_REGISTRATION")
+    )
+
 class Controller:
-    def __init__(self, act: Callable[[Config], None]):
+    def __init__(self, act: Callable[[Config], Awaitable[None]]):
         self._config = Config(charge=False, max_solar=0)
         self._act = act
 
@@ -62,32 +104,40 @@ class Controller:
         else:
             return Config(charge=False, max_solar=0)
         
-    def update(self, now: time):
+    async def update(self, now: time):
         config = self._next_state(now)
         if config != self._config:
             self._config = config
-            self._act(config)
+            await self._act(config)
+
+
+async def configure(config: Config):
+    if config.charge:
+        try:
+            async with aiohttp.ClientSession() as session:
+                vehicle = await get_renault_vehicle(session)
+                battery = await vehicle.get_battery_status()
+                if not battery.plugStatus:
+                    logger.info("Skipping requested charge as vehicle is unplugged")
+                    return
+        except Exception as e:
+            logger.warn(f"Unable to check vehicle battery status: {e}")
+
+    andersen_a2().configure(config)
 
 
 async def main():
-    def configure(config: Config):
-        andersen = AndersenA2(
-            require_env("ANDERSEN_USERNAME"),
-            require_env("ANDERSEN_PASSWORD"),
-            require_env("ANDERSEN_DEVICE_NAME"),
-        )
-        andersen.configure(config)
+        controller = Controller(configure)
+        logging.info("Controller started")
 
-    controller = Controller(configure)
-    controller.update(datetime.now().time())
-    logging.info("Controller started")
+        async def update():
+            await controller.update(datetime.now().time())
 
-    def update():
-        controller.update(datetime.now().time())
-        
-    msh = Scheduler(locale="en_GB")
-    msh.add_job(CronJob().every(1).minute.go(update))
-    await msh.start()
+        msh = Scheduler(locale="en_GB")
+        msh.add_job(CronJob().every(1).minute.go(update))
+
+        await update()
+        await msh.start()
 
 
 if __name__ == "__main__":
