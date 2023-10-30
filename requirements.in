@@ -1,11 +1,14 @@
 aiohttp
 andersen-ev
 async-cron
+asyncio
+AWSIoTPythonSDK
 gql
 pip-tools
 pycognito
 pytest
 python-dotenv
+renault-api
 requests
 requests_toolbelt
 websockets
