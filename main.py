@@ -86,7 +86,7 @@ async def main():
         controller.update(datetime.now().time())
         
     msh = Scheduler(locale="en_GB")
-    msh.add_job(CronJob().every(30).minute.go(update))
+    msh.add_job(CronJob().every(1).minute.go(update))
     await msh.start()
 
 
