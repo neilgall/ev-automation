@@ -2,7 +2,7 @@ aiohttp
 andersen-ev
 async-cron
 asyncio
-AWSIoTPythonSDK
+black
 dateparser
 gql
 pip-tools
