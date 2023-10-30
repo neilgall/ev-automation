@@ -17,5 +17,6 @@ class Intent:
 
 @dataclass
 class State:
+    plugged_in: bool
     current_charge: int
     now: time

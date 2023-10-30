@@ -8,8 +8,8 @@ from async_cron.schedule import Scheduler
 from control.controller import Controller
 from datetime import datetime, time
 from devices.andersen import AndersenA2
-from devices.vehicle import renault_vehicle, RenaultVehicle
-from model import Config
+from devices.vehicle import Vehicle, Credentials
+from model import Config, State
 from typing import Awaitable, Callable
 
 
@@ -40,42 +40,43 @@ def get_andersen_a2() -> AndersenA2:
     )
 
 
-async def get_renault_vehicle(session: aiohttp.ClientSession) -> RenaultVehicle:
-    return await renault_vehicle(
+async def get_vehicle(session: aiohttp.ClientSession) -> Vehicle:
+    vehicle = Vehicle(
         session,
-        require_env("RENAULT_USERNAME"),
-        require_env("RENAULT_PASSWORD"),
-        require_env("RENAULT_REGISTRATION"),
+        Credentials(
+            username=require_env("RENAULT_USERNAME"),
+            password=require_env("RENAULT_PASSWORD"),
+            registration=require_env("RENAULT_REGISTRATION"),
+        ),
     )
-
-
-async def configure(config: Config):
-    if config.charge:
-        try:
-            async with aiohttp.ClientSession() as session:
-                vehicle = await get_renault_vehicle(session)
-                battery = await vehicle.get_battery_status()
-                if not battery.plugStatus:
-                    logger.info("Skipping requested charge as vehicle is unplugged")
-                    return
-        except Exception as e:
-            logger.warn(f"Unable to check vehicle battery status: {e}")
-
-    andersen_a2().configure(config)
+    await vehicle.connect()
+    return vehicle
 
 
 async def main():
-    controller = Controller(configure)
-    logging.info("Controller started")
+    async with aiohttp.ClientSession() as session:
+        vehicle = await get_vehicle(session)
 
-    async def update():
-        await controller.update(datetime.now().time())
+        async def configure(config: Config):
+            get_andersen_a2().configure(config)
 
-    msh = Scheduler(locale="en_GB")
-    msh.add_job(CronJob().every(1).minute.go(update))
+        controller = Controller(configure)
+        logging.info("Controller started")
 
-    await update()
-    await msh.start()
+        async def update():
+            battery = await vehicle.get_battery_status()
+            state = State(
+                plugged_in=bool(battery.plugStatus),
+                current_charge=battery.batteryLevel,
+                now=datetime.now().time()
+            )
+            await controller.update(state)
+
+        msh = Scheduler(locale="en_GB")
+        msh.add_job(CronJob().every(1).minute.go(update))
+
+        await update()
+        await msh.start()
 
 
 if __name__ == "__main__":
