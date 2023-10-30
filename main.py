@@ -14,9 +14,10 @@ from typing import Awaitable, Callable
 
 
 logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
+    format="%(asctime)s %(levelname)-8s %(message)s",
     level=logging.INFO,
-    datefmt='%Y-%m-%d %H:%M:%S')
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 
 dotenv.load_dotenv()
 
@@ -61,11 +62,9 @@ def get_andersen_a2() -> AndersenA2:
         require_env("ANDERSEN_DEVICE_NAME"),
     )
 
+
 async def renault_vehicle(
-    session: aiohttp.ClientSession,
-    username: str,
-    password: str,
-    registration: str
+    session: aiohttp.ClientSession, username: str, password: str, registration: str
 ) -> RenaultVehicle:
     client = RenaultClient(websession=session, locale="fr_FR")
     await client.session.login(username, password)
@@ -90,8 +89,9 @@ async def get_renault_vehicle(session: aiohttp.ClientSession) -> RenaultVehicle:
         session,
         require_env("RENAULT_USERNAME"),
         require_env("RENAULT_PASSWORD"),
-        require_env("RENAULT_REGISTRATION")
+        require_env("RENAULT_REGISTRATION"),
     )
+
 
 class Controller:
     def __init__(self, act: Callable[[Config], Awaitable[None]]):
@@ -103,7 +103,7 @@ class Controller:
             return Config(charge=True, max_solar=0)
         else:
             return Config(charge=False, max_solar=0)
-        
+
     async def update(self, now: time):
         config = self._next_state(now)
         if config != self._config:
@@ -145,4 +145,4 @@ if __name__ == "__main__":
         loop = asyncio.get_event_loop()
         loop.run_until_complete(main())
     except KeyboardInterrupt:
-        print('exit')
+        print("exit")
