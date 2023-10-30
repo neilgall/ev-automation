@@ -127,17 +127,17 @@ async def configure(config: Config):
 
 
 async def main():
-        controller = Controller(configure)
-        logging.info("Controller started")
+    controller = Controller(configure)
+    logging.info("Controller started")
 
-        async def update():
-            await controller.update(datetime.now().time())
+    async def update():
+        await controller.update(datetime.now().time())
 
-        msh = Scheduler(locale="en_GB")
-        msh.add_job(CronJob().every(1).minute.go(update))
+    msh = Scheduler(locale="en_GB")
+    msh.add_job(CronJob().every(1).minute.go(update))
 
-        await update()
-        await msh.start()
+    await update()
+    await msh.start()
 
 
 if __name__ == "__main__":
