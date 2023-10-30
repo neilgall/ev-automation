@@ -43,4 +43,5 @@ class Vehicle:
         now = datetime.now()
         if self._battery[0] + timedelta(minutes=15) < now:
             self._battery = (now, await self._vehicle.get_battery_status())
+            print(f"battery: {self._battery[1]}")
         return self._battery[1]
