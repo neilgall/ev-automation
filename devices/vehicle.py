@@ -45,3 +45,23 @@ class Vehicle:
             self._battery = (now, await self._vehicle.get_battery_status())
             print(f"battery: {self._battery[1]}")
         return self._battery[1]
+
+if __name__ == "__main__":
+    import aiohttp, asyncio, dotenv, os
+
+    async def test():
+        async with aiohttp.ClientSession() as session:
+            vehicle = Vehicle(
+                session,
+                Credentials(
+                    username=os.environ["RENAULT_USERNAME"],
+                    password=os.environ["RENAULT_PASSWORD"],
+                    registration=os.environ["RENAULT_REGISTRATION"],
+                ),
+            )
+            await vehicle.connect()
+            print(await vehicle.get_battery_status())
+
+    dotenv.load_dotenv()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(test())
