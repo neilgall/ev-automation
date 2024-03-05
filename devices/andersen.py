@@ -1,7 +1,5 @@
 import andersen_ev
 import logging
-from dataclasses import dataclass
-from model import Config
 
 
 class AndersenA2:
@@ -11,11 +9,6 @@ class AndersenA2:
         self._device = self._a2.device_by_name(device_name)
         self._deviceId = self._device["id"]
 
-    def configure(self, config: Config):
-        logging.info(f"configure {config}")
-        if config.charge:
-            self._a2.set_solar(self._deviceId, False, False, 100 - config.max_solar)
-            self._a2.set_all_schedules_disabled(self._deviceId)
-            self._a2.user_unlock(self._deviceId)
-        else:
-            self._a2.user_lock(self._deviceId)
+    def set_max_solar(self, max_solar: int):
+        logging.info(f"set_max_solar {max_solar}")
+        self._a2.set_solar(self._deviceId, False, False, 100 - max_solar)

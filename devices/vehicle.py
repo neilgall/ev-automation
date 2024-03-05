@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from renault_api.renault_client import RenaultClient
 from renault_api.renault_vehicle import RenaultVehicle
+from renault_api.kamereon.models import ChargeSchedule, ChargeDaySchedule
+import logging
 
 
 @dataclass
@@ -43,8 +45,34 @@ class Vehicle:
         now = datetime.now()
         if self._battery[0] + timedelta(minutes=15) < now:
             self._battery = (now, await self._vehicle.get_battery_status())
-            print(f"battery: {self._battery[1]}")
+            logging.debug(f"battery: {self._battery[1]}")
         return self._battery[1]
+
+    async def enable_charge_schedule(self, enable: bool):
+        logging.debug(f"enable_charge_schedule {enable}")
+        await self._vehicle.set_charge_mode("scheduled" if enable else "always")
+
+    async def set_charge_schedule(self, start: str, duration: int):
+        logging.debug(f"set_charge_schedule {start},{duration}")
+        day_schedule = ChargeDaySchedule(
+            startTime=start,
+            duration=duration,
+            raw_data={}
+        )
+        schedule = ChargeSchedule(
+            id=None,
+            activated=True,
+            monday=day_schedule,
+            tuesday=day_schedule,
+            wednesday=day_schedule,
+            thursday=day_schedule,
+            friday=day_schedule,
+            saturday=day_schedule,
+            sunday=day_schedule,
+            raw_data={}
+        )
+        await self._vehicle.set_charge_schedules([schedule])
+
 
 if __name__ == "__main__":
     import aiohttp, asyncio, dotenv, os
