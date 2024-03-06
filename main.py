@@ -23,6 +23,7 @@ logging.basicConfig(
 )
 
 dotenv.load_dotenv()
+iot_data = boto3.client("iot-data")
 
 
 def require_env(name: str) -> str:
@@ -66,10 +67,9 @@ async def get_status():
         )
         logging.info(f"{status}")
         return status
-        
+
 
 def get_intent():
-    iot_data = boto3.client("iot-data")
     data = iot_data.get_thing_shadow(thingName="car_status", shadowName="charge_intent")
     shadow = json.load(data['payload'])
     today = dt.date.today().isoformat()
