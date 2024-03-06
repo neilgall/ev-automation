@@ -1,12 +1,12 @@
 import datetime as dt
 import pytest
-from .config import Status, Config, get_config
+from .config import Environment, Status, Config, get_config
 
 
 def status(limit: int, battery: int, now: str) -> Status:
     return Status(
         now=dt.time.fromisoformat(now),
-        max_charge=limit,
+        max_grid_charge=limit,
         battery_level=battery
     )
 
@@ -23,4 +23,8 @@ def status(limit: int, battery: int, now: str) -> Status:
     (status(80, 50, "10:30"), Config(100))
 ])
 def test_get_config(status: Status, config: Config):
-    assert get_config(status) == config
+    env = Environment(
+        cheap_rate_start = dt.time(hour=0, minute=30),
+        cheap_rate_end = dt.time(hour=4, minute=30)
+    )
+    assert get_config(env, status) == config

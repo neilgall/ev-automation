@@ -3,9 +3,15 @@ import datetime as dt
 
 
 @dataclass
+class Environment:
+    cheap_rate_start: dt.time
+    cheap_rate_end: dt.time
+
+
+@dataclass
 class Status:
     now: dt.time
-    max_charge: int
+    max_grid_charge: int
     battery_level: int
 
 
@@ -14,11 +20,11 @@ class Config:
     max_solar: int
 
 
-def get_config(status: Status) -> Config:
-    if status.battery_level > status.max_charge:
+def get_config(env: Environment, status: Status) -> Config:
+    if status.battery_level >= status.max_grid_charge:
         return Config(max_solar=100)
 
-    if status.now < dt.time(hour=0, minute=30) or dt.time(hour=4, minute=30) < status.now:
+    if status.now < env.cheap_rate_start or env.cheap_rate_end < status.now:
         return Config(max_solar=100)
 
     return Config(max_solar=0)
