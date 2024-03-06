@@ -2,6 +2,7 @@ aiohttp
 andersen-ev
 asyncio
 black
+boto3
 dateparser
 gql
 pip-tools
