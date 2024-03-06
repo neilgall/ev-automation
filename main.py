@@ -12,6 +12,7 @@ from async_cron.schedule import Scheduler
 from datetime import datetime, time
 from devices.andersen import AndersenA2
 from devices.vehicle import Vehicle, Credentials
+from iot import IoTClient, IoTThing
 from model.config import Environment, Intent, Status, Config, get_config
 from typing import Awaitable, Callable
 
@@ -57,12 +58,34 @@ async def get_vehicle(session: aiohttp.ClientSession) -> Vehicle:
     return vehicle
 
 
+def init_iot() -> (IoTClient, IoTThing):
+    async def enable_heater(state: bool):
+        logging.info(f"set hvac state {state}")
+        async with aiohttp.ClientSession() as session:
+            vehicle = await get_vehicle(session)
+            await vehicle.set_hvac_state(state, 19)
+
+    def heater_state_updated(state: str):
+       asyncio.run(enable_heater(state == "on"))
+
+    iot_client = IoTClient()
+    heater = iot_client.register_thing(
+        thing_name="car_heater",
+        property="state",
+        default_value="off",
+        callback=heater_state_updated
+    )
+    return iot_client, heater
+
+
 async def get_status():
     async with aiohttp.ClientSession() as session:
         vehicle = await get_vehicle(session)
         battery = await vehicle.get_battery_status()
+        hvac = await vehicle.get_hvac_state()
         status = Status(
             battery_level=battery.batteryLevel,
+            hvac_state=hvac,
             now=dt.datetime.now().time()
         )
         logging.info(f"{status}")
@@ -78,20 +101,25 @@ def get_intent():
     return Intent(max_grid_charge=int(max_charge_today))
 
 
-async def update():    
-    env = Environment(
-        cheap_rate_start=dt.time(hour=0, minute=30),
-        cheap_rate_end=dt.time(hour=4, minute=25)
-    )
-    intent = get_intent()
-    status = await get_status()
-
-    config = get_config(env, intent, status)
-    andersen = get_andersen_a2()
-    andersen.set_max_solar(config.max_solar)
-
-
 async def main():
+    iot_client, iot_heater = init_iot()
+
+    def update_iot(status: Status):
+        iot_heater.change_shadow_value("on" if status.hvac_state else "off")
+        
+    async def update():    
+        env = Environment(
+            cheap_rate_start=dt.time(hour=0, minute=30),
+            cheap_rate_end=dt.time(hour=4, minute=25)
+        )
+        intent = get_intent()
+        status = await get_status()
+
+        config = get_config(env, intent, status)
+        andersen = get_andersen_a2()
+        andersen.set_max_solar(config.max_solar)
+        update_iot(status)
+
     msh = Scheduler(locale="en_GB")
     msh.add_job(CronJob().every(15).minute.go(update))
     await msh.start()

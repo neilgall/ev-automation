@@ -48,6 +48,16 @@ class Vehicle:
             logging.debug(f"battery: {self._battery[1]}")
         return self._battery[1]
 
+    async def get_hvac_state(self) -> bool:
+        hvac = await self._vehicle.get_hvac_status()
+        return hvac == "on"
+
+    async def set_hvac_state(self, state: bool, temperature: int):
+        if state:
+            await self._vehicle.set_ac_start(temperature=temperature)
+        else:
+            await self._vehicle.set_ac_stop()
+
     async def enable_charge_schedule(self, enable: bool):
         logging.debug(f"enable_charge_schedule {enable}")
         await self._vehicle.set_charge_mode("scheduled" if enable else "always")
