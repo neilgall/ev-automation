@@ -1,8 +1,10 @@
 import aiohttp
 import argparse
 import asyncio
+import boto3
 import datetime as dt
 import dotenv
+import json
 import logging
 import os
 from async_cron.job import CronJob
@@ -10,7 +12,7 @@ from async_cron.schedule import Scheduler
 from datetime import datetime, time
 from devices.andersen import AndersenA2
 from devices.vehicle import Vehicle, Credentials
-from model.config import Environment, Status, Config, get_config
+from model.config import Environment, Intent, Status, Config, get_config
 from typing import Awaitable, Callable
 
 
@@ -54,33 +56,44 @@ async def get_vehicle(session: aiohttp.ClientSession) -> Vehicle:
     return vehicle
 
 
-async def configure(env: Environment, max_grid_charge: int):
+async def get_status():
     async with aiohttp.ClientSession() as session:
         vehicle = await get_vehicle(session)
         battery = await vehicle.get_battery_status()
         status = Status(
-            max_grid_charge=max_grid_charge,
             battery_level=battery.batteryLevel,
             now=dt.datetime.now().time()
         )
-        config = get_config(env, status)
+        logging.info(f"{status}")
+        return status
+        
 
-        andersen = get_andersen_a2()
-        andersen.set_max_solar(config.max_solar)
+def get_intent():
+    iot_data = boto3.client("iot-data")
+    data = iot_data.get_thing_shadow(thingName="car_status", shadowName="charge_intent")
+    shadow = json.load(data['payload'])
+    today = dt.date.today().isoformat()
+    max_charge_today = shadow.get("state", {}).get("desired", {}).get(today, "60")
+    logging.info(f"maximum requested charge on {today} is {max_charge_today}")
+    return Intent(max_grid_charge=int(max_charge_today))
 
 
-async def update():
+async def update():    
     env = Environment(
         cheap_rate_start=dt.time(hour=0, minute=30),
         cheap_rate_end=dt.time(hour=4, minute=25)
     )
-    await configure(env, 60)
+    intent = get_intent()
+    status = await get_status()
+
+    config = get_config(env, intent, status)
+    andersen = get_andersen_a2()
+    andersen.set_max_solar(config.max_solar)
 
 
 async def main():
     msh = Scheduler(locale="en_GB")
     msh.add_job(CronJob().every(15).minute.go(update))
-    await update()
     await msh.start()
 
 

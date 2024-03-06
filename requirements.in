@@ -1,11 +1,13 @@
 aiohttp
 andersen-ev
 asyncio
+async_cron
 black
 boto3
 dateparser
 gql
 pip-tools
+pycognito
 pytest
 pytest-asyncio
 python-dotenv

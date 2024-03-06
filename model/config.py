@@ -9,9 +9,13 @@ class Environment:
 
 
 @dataclass
+class Intent:
+    max_grid_charge: int
+
+
+@dataclass
 class Status:
     now: dt.time
-    max_grid_charge: int
     battery_level: int
 
 
@@ -20,8 +24,8 @@ class Config:
     max_solar: int
 
 
-def get_config(env: Environment, status: Status) -> Config:
-    if status.battery_level >= status.max_grid_charge:
+def get_config(env: Environment, intent: Intent, status: Status) -> Config:
+    if status.battery_level >= intent.max_grid_charge:
         return Config(max_solar=100)
 
     if status.now < env.cheap_rate_start or env.cheap_rate_end < status.now:
