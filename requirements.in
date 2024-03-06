@@ -2,6 +2,7 @@ aiohttp
 andersen-ev
 asyncio
 async_cron
+awsiotsdk
 black
 boto3
 dateparser
