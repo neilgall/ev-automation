@@ -17,6 +17,7 @@ class Intent:
 class Status:
     now: dt.time
     battery_level: int
+    estimated_range: int
     hvac_state: bool
 
 

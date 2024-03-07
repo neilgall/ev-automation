@@ -58,7 +58,7 @@ async def get_vehicle(session: aiohttp.ClientSession) -> Vehicle:
     return vehicle
 
 
-def init_iot() -> (IoTClient, IoTThing):
+def init_iot() -> (IoTClient, IoTThing, IoTThing):
     async def enable_heater(state: bool):
         logging.info(f"set hvac state {state}")
         async with aiohttp.ClientSession() as session:
@@ -75,7 +75,12 @@ def init_iot() -> (IoTClient, IoTThing):
         default_value="off",
         callback=heater_state_updated
     )
-    return iot_client, heater
+    status = iot_client.register_thing(
+        thing_name="car_status",
+        property="state",
+        default_value={}
+    )
+    return iot_client, heater, status
 
 
 async def get_status():
@@ -85,6 +90,7 @@ async def get_status():
         hvac = await vehicle.get_hvac_state()
         status = Status(
             battery_level=battery.batteryLevel,
+            estimated_range=battery.batteryAutonomy,
             hvac_state=hvac,
             now=dt.datetime.now().time()
         )
@@ -102,10 +108,14 @@ def get_intent():
 
 
 async def main():
-    iot_client, iot_heater = init_iot()
+    iot_client, iot_heater, iot_status = init_iot()
 
     def update_iot(status: Status):
         iot_heater.change_shadow_value("on" if status.hvac_state else "off")
+        iot_status.change_shadow_value({
+            "battery_level": status.battery_level,
+            "estimated_range": status.estimated_range
+        })
         
     async def update():    
         env = Environment(
