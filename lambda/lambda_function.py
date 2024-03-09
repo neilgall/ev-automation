@@ -23,6 +23,11 @@ logger.setLevel(logging.INFO)
 iot_data = boto3.client('iot-data')
 
 
+def get_slot(slots, name, default_value):
+    slot = slots.get(name)
+    return slot.value if slot and slot.value else default_value
+
+
 class LaunchRequestHandler(AbstractRequestHandler):
     """Handler for Skill Launch."""
     def can_handle(self, handler_input):
@@ -196,30 +201,48 @@ class ChargeLevelIntentHandler(AbstractRequestHandler):
 
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
-        attributes = handler_input.attributes_manager.request_attributes
-        target_charge_level = attributes.get("charge_level")
-        target_charge_date = attributes.get("date", dt.date.today())
+        slots = handler_input.request_envelope.request.intent.slots
+        target_charge_level = get_slot(slots, "charge_level", 60)
+        target_charge_date = get_slot(slots, "date", dt.date.today())
 
-        logging.info(f"target_charge_level = {target_charge_level}")
-        logging.info(f"date = {target_charge_date}")
+        if type(target_charge_date) == str:
+            target_charge_date = dt.date.fromisoformat(target_charge_date)
+
+        target_charge_date += dt.timedelta(days=1)
+
+        print(f"target_charge_level = {target_charge_level}")
+        print(f"date = {target_charge_date}")
 
         shadow = iot_data.get_thing_shadow(thingName="car_status", shadowName="charge_intent")
-        charge_intent = json.load(shadow["payload"])
-        charge_intent[target_charge_date.isoformat()] = target_charge_level
+        charge_intent_by_date = json.load(shadow['payload'])
+
+        def not_expired(date):
+            try:
+                date = dt.date.fromisoformat(date)
+                return date >= target_charge_date
+            except:
+                return False
+
+        charge_intent_by_date = {
+            (date): charge
+            for date,charge in charge_intent_by_date.items()
+            if not_expired(date)
+        }
+        charge_intent_by_date[target_charge_date.isoformat()] = target_charge_level
 
         desired_shadow = {
             "state": {
-                "desired": charge_intent
+                "desired": charge_intent_by_date
             }
         }
 
         iot_data.update_thing_shadow(
-            thingName="car_heater",
+            thingName="car_status",
             shadowName="charge_intent",
             payload=json.dumps(desired_shadow)
         )
 
-        speak_output = f"Ok, your car will charge to {target_charge_level} on {target_charge_date}"
+        speak_output = f"Ok, your car will charge to {target_charge_level} percent on {target_charge_date}"
 
         return (
             handler_input.response_builder
