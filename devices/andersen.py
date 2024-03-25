@@ -1,4 +1,5 @@
 import andersen_ev
+import datetime as dt
 import logging
 
 
@@ -9,14 +10,30 @@ class AndersenA2:
         self._device = self._a2.device_by_name(device_name)
         self._deviceId = self._device["id"]
 
-    def get_solar_override(self):
-        solar = self._a2.get_device_solar(self._deviceId)
-        return solar.get("getDevice", {}).get("deviceInfo", {}).get("solarOverrideStart", None) is not None
+    def get_solar_override(self) -> bool:
+        try:
+            solar = self._a2.get_device_solar(self._deviceId)
+            start_str = solar.get("getDevice", {}).get("deviceInfo", {}).get("solarOverrideStart", None)
+            if not start_str:
+                return False
+            start = dt.datetime.fromisoformat(start_str).replace(tzinfo=None)
+            return dt.datetime.utcnow() - start < dt.timedelta(hours=2)
+        except Exception as e:
+            logging.error(f"failed to fetch solar override: {e}")
+            return False
 
-    def set_max_solar(self, max_solar: int):
-        logging.info(f"set_max_solar {max_solar}")
+    def set_charge_from_grid(self, charge_from_grid: bool):
         override = self.get_solar_override()
-        self._a2.set_solar(self._deviceId, override, False, 100 - max_solar)
+        try:
+            logging.info(f"set_charge_from_grid {charge_from_grid} override={override}")
+            self._a2.set_solar(
+                deviceId=self._deviceId,
+                override=override,
+                chargeAlways=charge_from_grid,
+                maxGridChargePercent=100 if charge_from_grid else 0
+            )
+        except Exception as e:
+            logging.error(f"failed to set charge mode: {e}")
 
 
 if __name__ == "__main__":

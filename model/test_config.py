@@ -6,20 +6,22 @@ from .config import Environment, Status, Intent, Config, get_config
 def status(battery: int, now: str) -> Status:
     return Status(
         now=dt.time.fromisoformat(now),
-        battery_level=battery
+        battery_level=battery,
+        estimated_range=0,
+        hvac_state=False
     )
 
 
 @pytest.mark.parametrize("status,intent,config", [
-    (status(50, "00:29"), Intent(60), Config(100)),
-    (status(50, "00:30"), Intent(60), Config(0)),
-    (status(50, "01:30"), Intent(60), Config(0)),
-    (status(50, "02:30"), Intent(60), Config(0)),
-    (status(50, "03:30"), Intent(60), Config(0)),
-    (status(50, "04:30"), Intent(60), Config(0)),
-    (status(50, "04:31"), Intent(60), Config(100)),
-    (status(70, "01:30"), Intent(60), Config(100)),
-    (status(50, "10:30"), Intent(80), Config(100))
+    (status(50, "00:29"), Intent(60), Config(False)),
+    (status(50, "00:30"), Intent(60), Config(True)),
+    (status(50, "01:30"), Intent(60), Config(True)),
+    (status(50, "02:30"), Intent(60), Config(True)),
+    (status(50, "03:30"), Intent(60), Config(True)),
+    (status(50, "04:30"), Intent(60), Config(True)),
+    (status(50, "04:31"), Intent(60), Config(False)),
+    (status(70, "01:30"), Intent(60), Config(False)),
+    (status(50, "10:30"), Intent(80), Config(False))
 ])
 def test_get_config(status: Status, intent: Intent, config: Config):
     env = Environment(

@@ -127,7 +127,7 @@ async def main():
 
         config = get_config(env, intent, status)
         andersen = get_andersen_a2()
-        andersen.set_max_solar(config.max_solar)
+        andersen.set_charge_from_grid(config.charge_from_grid)
         update_iot(status)
 
     msh = Scheduler(locale="en_GB")
