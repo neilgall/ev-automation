@@ -131,7 +131,8 @@ async def main():
         update_iot(status)
 
     msh = Scheduler(locale="en_GB")
-    msh.add_job(CronJob().every(15).minute.go(update))
+    for minute in [0,15,30,45]:
+        msh.add_job(CronJob().every().hour.at(f":{minute}").go(update))
     await msh.start()
 
 
