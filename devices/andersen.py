@@ -31,7 +31,7 @@ class AndersenA2:
             return 0
 
     def set_charge_from_grid(self, charge_from_grid: bool):
-        current_charge_from_grid = self.get_max_grid_charge_percent() == 0
+        current_charge_from_grid = self.get_max_grid_charge_percent() == 100
         if charge_from_grid == current_charge_from_grid:
             logging.info(f"set_charge_from_grid {charge_from_grid} already set")
             return
