@@ -1,5 +1,5 @@
 aiohttp
-andersen-ev
+andersen-ev @ https://github.com/strobejb/andersen-ev/releases/download/v0.1.20/andersen_ev-0.1.20-py3-none-any.whl
 asyncio
 async_cron
 awsiotsdk

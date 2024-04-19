@@ -22,9 +22,21 @@ class AndersenA2:
             logging.error(f"failed to fetch solar override: {e}")
             return False
 
-    def set_charge_from_grid(self, charge_from_grid: bool):
-        override = self.get_solar_override()
+    def get_max_grid_charge_percent(self):
         try:
+            status = self._a2.get_device_status(self._deviceId)
+            return int(status["solarMaxGridChargePercent"])
+        except Exception as e:
+            logging.error(f"failed to fetch max grid charge: {e}")
+            return 0
+
+    def set_charge_from_grid(self, charge_from_grid: bool):
+        current_charge_from_grid = self.get_max_grid_charge_percent() == 0
+        if charge_from_grid == current_charge_from_grid:
+            logging.info(f"set_charge_from_grid {charge_from_grid} already set")
+            return
+        try:
+            override = self.get_solar_override()
             logging.info(f"set_charge_from_grid {charge_from_grid} override={override}")
             self._a2.set_solar(
                 deviceId=self._deviceId,
@@ -37,7 +49,7 @@ class AndersenA2:
 
 
 if __name__ == "__main__":
-    import dotenv, os
+    import dotenv, os, json
     dotenv.load_dotenv()
 
     a2 = AndersenA2(
@@ -45,4 +57,4 @@ if __name__ == "__main__":
         os.getenv("ANDERSEN_PASSWORD"),
         os.getenv("ANDERSEN_DEVICE_NAME")
     )
-    print(a2.get_solar_override())
+    print(json.dumps(a2._a2.get_device_status(deviceId=a2._deviceId)))
