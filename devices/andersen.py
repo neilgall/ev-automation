@@ -25,7 +25,7 @@ class AndersenA2:
     def get_max_grid_charge_percent(self):
         try:
             status = self._a2.get_device_status(self._deviceId)
-            return int(status["solarMaxGridChargePercent"])
+            return int(status.get("deviceStatus", {}).get("solarMaxGridChargePercent"))
         except Exception as e:
             logging.error(f"failed to fetch max grid charge: {e}")
             return 0
