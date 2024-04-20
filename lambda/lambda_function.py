@@ -208,7 +208,8 @@ class ChargeLevelIntentHandler(AbstractRequestHandler):
         if type(target_charge_date) == str:
             target_charge_date = dt.date.fromisoformat(target_charge_date)
 
-        target_charge_date += dt.timedelta(days=1)
+        if dt.datetime.now().hour >= 5:
+            target_charge_date += dt.timedelta(days=1)
 
         print(f"target_charge_level = {target_charge_level}")
         print(f"date = {target_charge_date}")
@@ -216,17 +217,17 @@ class ChargeLevelIntentHandler(AbstractRequestHandler):
         shadow = iot_data.get_thing_shadow(thingName="car_status", shadowName="charge_intent")
         charge_intent_by_date = json.load(shadow['payload'])
 
-        def not_expired(date):
+        def expired(date):
             try:
                 date = dt.date.fromisoformat(date)
-                return date >= target_charge_date
+                return date < target_charge_date
             except:
-                return False
+                return True
 
         charge_intent_by_date = {
             (date): charge
             for date,charge in charge_intent_by_date.items()
-            if not_expired(date)
+            if not expired(date)
         }
         charge_intent_by_date[target_charge_date.isoformat()] = target_charge_level
 
