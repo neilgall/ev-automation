@@ -111,6 +111,8 @@ async def main():
     iot_client, iot_heater, iot_status = init_iot()
 
     def update_iot(status: Status):
+        if status.hvac_state:
+            get_andersen_a2().set_charge_from_grid(True)
         iot_heater.change_shadow_value("on" if status.hvac_state else "off")
         iot_status.change_shadow_value({
             "battery_level": status.battery_level,
