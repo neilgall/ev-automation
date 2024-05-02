@@ -60,7 +60,7 @@ class Vehicle:
 
     async def enable_charge_schedule(self, enable: bool):
         logging.debug(f"enable_charge_schedule {enable}")
-        await self._vehicle.set_charge_mode("scheduled" if enable else "always")
+        await self._vehicle.set_charge_mode("schedule_mode" if enable else "always_charging")
 
     async def set_charge_schedule(self, start: str, duration: int):
         logging.debug(f"set_charge_schedule {start},{duration}")
