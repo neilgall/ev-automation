@@ -3,3 +3,4 @@
 *.crt
 .env
 __pycache__
+.vscode
