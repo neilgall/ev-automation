@@ -22,15 +22,28 @@ class Status:
 
 
 @dataclass
+class ChargeSchedule:
+    start: dt.time
+    end: dt.time
+
+
+@dataclass
 class Config:
     charge_from_grid: bool
+    charge_schedule: ChargeSchedule | None
 
 
 def get_config(env: Environment, intent: Intent, status: Status) -> Config:
     if status.battery_level >= intent.max_grid_charge:
-        return Config(charge_from_grid=False)
+        return Config(charge_from_grid=False, charge_schedule=None)
 
     if status.now < env.cheap_rate_start or env.cheap_rate_end < status.now:
-        return Config(charge_from_grid=False)
+        return Config(charge_from_grid=False, charge_schedule=None)
 
-    return Config(charge_from_grid=True)
+    return Config(
+        charge_from_grid=True,
+        charge_schedule=ChargeSchedule(
+            start=env.cheap_rate_start,
+            end=env.cheap_rate_end
+        )
+    )

@@ -7,14 +7,15 @@ import dotenv
 import json
 import logging
 import os
+import sys
 from async_cron.job import CronJob
 from async_cron.schedule import Scheduler
 from datetime import datetime, time
 from devices.andersen import AndersenA2
 from devices.vehicle import Vehicle, Credentials
 from iot import IoTClient, IoTThing
-from model.config import Environment, Intent, Status, Config, get_config
-from typing import Awaitable, Callable
+from model.config import Environment, Intent, Status, Config, ChargeSchedule, get_config
+from typing import Tuple
 
 
 logging.basicConfig(
@@ -58,7 +59,7 @@ async def get_vehicle(session: aiohttp.ClientSession) -> Vehicle:
     return vehicle
 
 
-def init_iot() -> (IoTClient, IoTThing, IoTThing):
+def init_iot() -> Tuple[IoTClient, IoTThing, IoTThing]:
     async def enable_heater(state: bool):
         logging.info(f"set hvac state {state}")
         async with aiohttp.ClientSession() as session:
@@ -83,19 +84,17 @@ def init_iot() -> (IoTClient, IoTThing, IoTThing):
     return iot_client, heater, status
 
 
-async def get_status():
-    async with aiohttp.ClientSession() as session:
-        vehicle = await get_vehicle(session)
-        battery = await vehicle.get_battery_status()
-        hvac = await vehicle.get_hvac_state()
-        status = Status(
-            battery_level=battery.batteryLevel,
-            estimated_range=battery.batteryAutonomy,
-            hvac_state=hvac,
-            now=dt.datetime.now().time()
-        )
-        logging.info(f"{status}")
-        return status
+async def get_status(vehicle: Vehicle):
+    battery = await vehicle.get_battery_status()
+    hvac = await vehicle.get_hvac_state()
+    status = Status(
+        battery_level=battery.batteryLevel,
+        estimated_range=battery.batteryAutonomy,
+        hvac_state=hvac,
+        now=dt.datetime.now().time()
+    )
+    logging.info(f"{status}")
+    return status
 
 
 def get_intent():
@@ -105,6 +104,13 @@ def get_intent():
     max_charge_today = shadow.get("state", {}).get("desired", {}).get(today, "60")
     logging.info(f"maximum requested charge on {today} is {max_charge_today}")
     return Intent(max_grid_charge=int(max_charge_today))
+
+
+def to_charge_schedule(c: ChargeSchedule) -> Tuple[str, int]:
+    start = dt.datetime.combine(dt.date.today(), c.start)
+    end = dt.datetime.combine(dt.date.today(), c.end)
+    duration_mins = int((end - start).total_seconds() / 60)
+    return (c.start.isoformat[:5], duration_mins)
 
 
 async def main():
@@ -118,24 +124,39 @@ async def main():
             "battery_level": status.battery_level,
             "estimated_range": status.estimated_range
         })
-        
-    async def update():    
-        env = Environment(
-            cheap_rate_start=dt.time(hour=0, minute=30),
-            cheap_rate_end=dt.time(hour=4, minute=25)
-        )
-        intent = get_intent()
-        status = await get_status()
 
-        config = get_config(env, intent, status)
+    async def apply_config(vehicle: Vehicle, config: Config):
         andersen = get_andersen_a2()
         andersen.set_charge_from_grid(config.charge_from_grid)
-        update_iot(status)
 
-    msh = Scheduler(locale="en_GB")
-    for minute in [0,15,30,45]:
-        msh.add_job(CronJob().every().hour.at(f":{minute}").go(update))
-    await msh.start()
+        if config.charge_schedule:
+            (start, duration) = to_charge_schedule(config.charge_schedule)
+            await vehicle.set_charge_schedule(start, duration)
+            await vehicle.enable_charge_schedule(True)
+        else:
+            await vehicle.enable_charge_schedule(False)
+        
+    async def update():    
+        async with aiohttp.ClientSession() as session:
+            env = Environment(
+                cheap_rate_start=dt.time(hour=0, minute=30),
+                cheap_rate_end=dt.time(hour=4, minute=25)
+            )
+            vehicle = await get_vehicle(session)
+            status = await get_status(vehicle)
+            intent = get_intent()
+            config = get_config(env, intent, status)
+
+            await apply_config(vehicle, config)
+            update_iot(status)
+
+    if "--test" in sys.argv:
+        await update()
+    else:
+        msh = Scheduler(locale="en_GB")
+        for minute in [0,15,30,45]:
+            msh.add_job(CronJob().every().hour.at(f":{minute}").go(update))
+        await msh.start()
 
 
 if __name__ == "__main__":
