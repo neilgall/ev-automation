@@ -110,7 +110,7 @@ def to_charge_schedule(c: ChargeSchedule) -> Tuple[str, int]:
     start = dt.datetime.combine(dt.date.today(), c.start)
     end = dt.datetime.combine(dt.date.today(), c.end)
     duration_mins = int((end - start).total_seconds() / 60)
-    return (c.start.isoformat[:5], duration_mins)
+    return (c.start.isoformat()[:5], duration_mins)
 
 
 async def main():
@@ -160,8 +160,9 @@ async def main():
 
 
 if __name__ == "__main__":
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
-        loop = asyncio.get_event_loop()
         loop.run_until_complete(main())
     except KeyboardInterrupt:
         print("exit")
