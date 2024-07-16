@@ -130,9 +130,12 @@ async def main():
         andersen.set_charge_from_grid(config.charge_from_grid)
 
         if config.charge_schedule:
-            (start, duration) = to_charge_schedule(config.charge_schedule)
-            await vehicle.set_charge_schedule(start, duration)
-            await vehicle.enable_charge_schedule(True)
+            try:
+                (start, duration) = to_charge_schedule(config.charge_schedule)
+                await vehicle.set_charge_schedule(start, duration)
+                await vehicle.enable_charge_schedule(True)
+            except Exception:
+                await vehicle.enable_charge_schedule(False)
         else:
             await vehicle.enable_charge_schedule(False)
         
