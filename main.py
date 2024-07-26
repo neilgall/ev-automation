@@ -142,8 +142,8 @@ async def main():
     async def update():    
         async with aiohttp.ClientSession() as session:
             env = Environment(
-                cheap_rate_start=dt.time(hour=0, minute=30),
-                cheap_rate_end=dt.time(hour=4, minute=25)
+                cheap_rate_start=dt.time(hour=0, minute=0),
+                cheap_rate_end=dt.time(hour=4, minute=59)
             )
             vehicle = await get_vehicle(session)
             status = await get_status(vehicle)
