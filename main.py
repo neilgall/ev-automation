@@ -14,7 +14,11 @@ from datetime import datetime, time
 from devices.andersen import AndersenA2
 from devices.vehicle import Vehicle, Credentials
 from iot import IoTClient, IoTThing
-from model.config import Environment, Intent, Status, Config, ChargeSchedule, get_config
+from model.config import Config, get_config
+from model.schedule import ChargeSchedule
+from model.status import Status
+from model.intent import Intent
+from model.environment import Environment
 from typing import Tuple
 
 
@@ -91,18 +95,20 @@ async def get_status(vehicle: Vehicle):
         battery_level=battery.batteryLevel,
         estimated_range=battery.batteryAutonomy,
         hvac_state=hvac,
-        now=dt.datetime.now().time()
+        now=dt.datetime.now()
     )
     logging.info(f"{status}")
     return status
 
 
-def get_intent():
+def get_intent(env: Environment) -> Intent:
     data = iot_data.get_thing_shadow(thingName="car_status", shadowName="charge_intent")
     shadow = json.load(data['payload'])
-    today = dt.date.today().isoformat()
-    max_charge_today = shadow.get("state", {}).get("desired", {}).get(today, "60")
-    logging.info(f"maximum requested charge on {today} is {max_charge_today}")
+    today = dt.datetime.now()
+    if today.time() > env.ready_by:
+        today += dt.timedelta(days=1)
+    max_charge_today = shadow.get("state", {}).get("desired", {}).get(today.date().isoformat(), "60")
+    logging.info(f"maximum requested charge on {today.date()} is {max_charge_today}")
     return Intent(max_grid_charge=int(max_charge_today))
 
 
@@ -110,7 +116,7 @@ def to_charge_schedule(c: ChargeSchedule) -> Tuple[str, int]:
     start = dt.datetime.combine(dt.date.today(), c.start)
     end = dt.datetime.combine(dt.date.today(), c.end)
     duration_mins = int((end - start).total_seconds() / 60)
-    return (c.start.isoformat()[:5], duration_mins)
+    return c.start.isoformat()[:5], duration_mins
 
 
 async def main():
@@ -143,11 +149,14 @@ async def main():
         async with aiohttp.ClientSession() as session:
             env = Environment(
                 cheap_rate_start=dt.time(hour=0, minute=0),
-                cheap_rate_end=dt.time(hour=4, minute=59)
+                cheap_rate_end=dt.time(hour=4, minute=59),
+                ready_by=dt.time(hour=7, minute=0),
+                battery_capacity_kwh=60,
+                charge_rate_kw=7.2
             )
             vehicle = await get_vehicle(session)
             status = await get_status(vehicle)
-            intent = get_intent()
+            intent = get_intent(env)
             config = get_config(env, intent, status)
 
             await apply_config(vehicle, config)
