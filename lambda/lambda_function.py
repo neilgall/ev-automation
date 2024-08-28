@@ -4,7 +4,6 @@
 # Please visit https://alexa.design/cookbook for additional examples on implementing slots, dialog management,
 # session persistence, api calls, and more.
 # This sample is built using the handler classes approach in skill builder.
-import boto3
 import json
 import logging
 import ask_sdk_core.utils as ask_utils
@@ -17,10 +16,12 @@ from ask_sdk_core.handler_input import HandlerInput
 from ask_sdk_model import Response
 from ask_sdk_model.ui import SimpleCard
 
+from model import ChargeIntent
+from iot_data import set_hvac, set_charge_level, BatteryLevel, get_battery_level
+
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-
-iot_data = boto3.client('iot-data')
 
 
 def get_slot(slots, name, default_value):
@@ -169,22 +170,12 @@ class HvacIntentHandler(AbstractRequestHandler):
 
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
-        if HvacIntentHandler.IS_ENABLE(handler_input):
-            desired_state = "on"
+        enable = HvacIntentHandler.IS_ENABLE(handler_input)
+        if set_hvac(enable):
             speak_output = "Car heating started"
         else:
-            desired_state = "off"
             speak_output = "Car heating stopped"
             
-        desired_shadow = {
-            "state": {
-                "desired": {
-                    "state": desired_state
-                }
-            }
-        }
-        iot_data.update_thing_shadow(thingName="car_heater", payload=json.dumps(desired_shadow))
-
         return (
             handler_input.response_builder
                 .speak(speak_output)
@@ -208,42 +199,9 @@ class ChargeLevelIntentHandler(AbstractRequestHandler):
         if type(target_charge_date) == str:
             target_charge_date = dt.date.fromisoformat(target_charge_date)
 
-        if dt.datetime.now().hour >= 5:
-            target_charge_date += dt.timedelta(days=1)
+        intent = set_charge_level(target_charge_level, target_charge_date)
 
-        print(f"target_charge_level = {target_charge_level}")
-        print(f"date = {target_charge_date}")
-
-        shadow = iot_data.get_thing_shadow(thingName="car_status", shadowName="charge_intent")
-        charge_intent_by_date = json.load(shadow['payload'])
-
-        def expired(date):
-            try:
-                date = dt.date.fromisoformat(date)
-                return date < target_charge_date
-            except:
-                return True
-
-        charge_intent_by_date = {
-            (date): charge
-            for date,charge in charge_intent_by_date.items()
-            if not expired(date)
-        }
-        charge_intent_by_date[target_charge_date.isoformat()] = target_charge_level
-
-        desired_shadow = {
-            "state": {
-                "desired": charge_intent_by_date
-            }
-        }
-
-        iot_data.update_thing_shadow(
-            thingName="car_status",
-            shadowName="charge_intent",
-            payload=json.dumps(desired_shadow)
-        )
-
-        speak_output = f"Ok, your car will charge to {target_charge_level} percent on {target_charge_date}"
+        speak_output = f"Ok, your car will charge to {intent.battery_percentage} percent on {intent.date}"
 
         return (
             handler_input.response_builder
@@ -261,20 +219,15 @@ class CarStatusIntentHandler(AbstractRequestHandler):
         return ask_utils.is_intent_name("get_battery_level")(handler_input)
 
     def handle(self, handler_input):
-        shadow = iot_data.get_thing_shadow(thingName="car_status")
-        status = json.load(shadow['payload'])
+        battery_level = get_battery_level()
 
-        data = status.get("state", {}).get("reported", {}).get("state", {})
-        battery_level = data.get("battery_level")
-        range_km = data.get("estimated_range")
-
-        if battery_level is None:
+        if battery_level.battery_percentage is None:
             speak_output = "I'm sorry, I wasn't able to read the current battery level"
         else:
-            speak_output = f"Your car battery is at {battery_level} percent."
+            speak_output = f"Your car battery is at {battery_level.battery_percentage} percent."
 
-        if range_km is not None:
-            range_miles = int(range_km / 1.609344)
+        if battery_level.range_km is not None:
+            range_miles = int(battery_level.range_km / 1.609344)
             speak_output += f" The estimated range is {range_miles} miles."
 
         return (
