@@ -60,14 +60,14 @@ class Vehicle:
 
     async def enable_charge_schedule(self, enable: bool):
         logging.debug(f"enable_charge_schedule {enable}")
-        await self._vehicle.set_charge_mode("schedule_mode" if enable else "always_charging")
+        await self._vehicle.set_charge_mode(
+            "schedule_mode" if enable else "always_charging"
+        )
 
     async def set_charge_schedule(self, start: str, duration: int):
         logging.debug(f"set_charge_schedule {start},{duration}")
         day_schedule = ChargeDaySchedule(
-            startTime=start,
-            duration=duration,
-            raw_data={}
+            startTime=start, duration=duration, raw_data={}
         )
         schedule = ChargeSchedule(
             id=None,
@@ -79,7 +79,7 @@ class Vehicle:
             friday=day_schedule,
             saturday=day_schedule,
             sunday=day_schedule,
-            raw_data={}
+            raw_data={},
         )
         await self._vehicle.set_charge_schedules([schedule])
 

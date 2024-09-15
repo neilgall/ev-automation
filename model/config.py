@@ -22,7 +22,4 @@ def get_config(env: Environment, intent: Intent, status: Status) -> Config:
     if status.now < schedule.start or schedule.end < status.now:
         return Config(charge_from_grid=False, charge_schedule=None)
 
-    return Config(
-        charge_from_grid=True,
-        charge_schedule=schedule
-    )
+    return Config(charge_from_grid=True, charge_schedule=schedule)

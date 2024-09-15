@@ -31,6 +31,7 @@ import traceback
 # on the device and an update is sent to the server with the new "reported"
 # value.
 
+
 class LockedData:
     def __init__(self):
         self.lock = threading.Lock()
@@ -48,7 +49,8 @@ class IoTClient:
             ca_filepath="./AmazonRootCA1.pem",
             client_id="car_iot",
             clean_session=False,
-            keep_alive_secs=30)
+            keep_alive_secs=30,
+        )
 
         print("Connecting to endpoint with client ID")
 
@@ -64,22 +66,26 @@ class IoTClient:
         connected_future.result()
         print("Connected!")
 
-    def register_thing(self,
+    def register_thing(
+        self,
         thing_name: str,
         property: str,
         default_value: Any,
-        callback: Callable[[str], None] | None = None
+        callback: Callable[[str], None] | None = None,
     ) -> "IoTThing":
-        return IoTThing(self._shadow_client, thing_name, property, default_value, callback)
+        return IoTThing(
+            self._shadow_client, thing_name, property, default_value, callback
+        )
 
 
 class IoTThing:
-    def __init__(self,
+    def __init__(
+        self,
         shadow_client: IoTClient,
         thing_name: str,
         property: str,
         default_value: Any,
-        callback: Callable[[str], None] | None = None
+        callback: Callable[[str], None] | None = None,
     ):
         self._shadow_client = shadow_client
         self._thing_name = thing_name
@@ -92,30 +98,50 @@ class IoTThing:
             # Note that is **is** important to wait for "accepted/rejected" subscriptions
             # to succeed before publishing the corresponding "request".
             print("Subscribing to Update responses...")
-            update_accepted_subscribed_future, _ = shadow_client.subscribe_to_update_shadow_accepted(
-                request=iotshadow.UpdateShadowSubscriptionRequest(thing_name=thing_name),
-                qos=mqtt.QoS.AT_LEAST_ONCE,
-                callback=self._on_update_shadow_accepted)
+            update_accepted_subscribed_future, _ = (
+                shadow_client.subscribe_to_update_shadow_accepted(
+                    request=iotshadow.UpdateShadowSubscriptionRequest(
+                        thing_name=thing_name
+                    ),
+                    qos=mqtt.QoS.AT_LEAST_ONCE,
+                    callback=self._on_update_shadow_accepted,
+                )
+            )
 
-            update_rejected_subscribed_future, _ = shadow_client.subscribe_to_update_shadow_rejected(
-                request=iotshadow.UpdateShadowSubscriptionRequest(thing_name=thing_name),
-                qos=mqtt.QoS.AT_LEAST_ONCE,
-                callback=self._on_update_shadow_rejected)
+            update_rejected_subscribed_future, _ = (
+                shadow_client.subscribe_to_update_shadow_rejected(
+                    request=iotshadow.UpdateShadowSubscriptionRequest(
+                        thing_name=thing_name
+                    ),
+                    qos=mqtt.QoS.AT_LEAST_ONCE,
+                    callback=self._on_update_shadow_rejected,
+                )
+            )
 
             # Wait for subscriptions to succeed
             update_accepted_subscribed_future.result()
             update_rejected_subscribed_future.result()
 
             print("Subscribing to Get responses...")
-            get_accepted_subscribed_future, _ = shadow_client.subscribe_to_get_shadow_accepted(
-                request=iotshadow.GetShadowSubscriptionRequest(thing_name=thing_name),
-                qos=mqtt.QoS.AT_LEAST_ONCE,
-                callback=self._on_get_shadow_accepted)
+            get_accepted_subscribed_future, _ = (
+                shadow_client.subscribe_to_get_shadow_accepted(
+                    request=iotshadow.GetShadowSubscriptionRequest(
+                        thing_name=thing_name
+                    ),
+                    qos=mqtt.QoS.AT_LEAST_ONCE,
+                    callback=self._on_get_shadow_accepted,
+                )
+            )
 
-            get_rejected_subscribed_future, _ = shadow_client.subscribe_to_get_shadow_rejected(
-                request=iotshadow.GetShadowSubscriptionRequest(thing_name=thing_name),
-                qos=mqtt.QoS.AT_LEAST_ONCE,
-                callback=self._on_get_shadow_rejected)
+            get_rejected_subscribed_future, _ = (
+                shadow_client.subscribe_to_get_shadow_rejected(
+                    request=iotshadow.GetShadowSubscriptionRequest(
+                        thing_name=thing_name
+                    ),
+                    qos=mqtt.QoS.AT_LEAST_ONCE,
+                    callback=self._on_get_shadow_rejected,
+                )
+            )
 
             # Wait for subscriptions to succeed
             get_accepted_subscribed_future.result()
@@ -123,10 +149,15 @@ class IoTThing:
 
             if callback:
                 print("Subscribing to Delta events...")
-                delta_subscribed_future, _ = shadow_client.subscribe_to_shadow_delta_updated_events(
-                    request=iotshadow.ShadowDeltaUpdatedSubscriptionRequest(thing_name=thing_name),
-                    qos=mqtt.QoS.AT_LEAST_ONCE,
-                    callback=self._on_shadow_delta_updated)
+                delta_subscribed_future, _ = (
+                    shadow_client.subscribe_to_shadow_delta_updated_events(
+                        request=iotshadow.ShadowDeltaUpdatedSubscriptionRequest(
+                            thing_name=thing_name
+                        ),
+                        qos=mqtt.QoS.AT_LEAST_ONCE,
+                        callback=self._on_shadow_delta_updated,
+                    )
+                )
 
                 # Wait for subscription to succeed
                 delta_subscribed_future.result()
@@ -141,8 +172,11 @@ class IoTThing:
                     token = str(uuid4())
 
                     publish_get_future = shadow_client.publish_get_shadow(
-                        request=iotshadow.GetShadowRequest(thing_name=thing_name, client_token=token),
-                        qos=mqtt.QoS.AT_LEAST_ONCE)
+                        request=iotshadow.GetShadowRequest(
+                            thing_name=thing_name, client_token=token
+                        ),
+                        qos=mqtt.QoS.AT_LEAST_ONCE,
+                    )
 
                     self._locked_data.request_tokens.add(token)
 
@@ -160,12 +194,16 @@ class IoTThing:
                 try:
                     self._locked_data.request_tokens.remove(response.client_token)
                 except KeyError:
-                    print("Ignoring get_shadow_accepted message due to unexpected token.")
+                    print(
+                        "Ignoring get_shadow_accepted message due to unexpected token."
+                    )
                     return
 
                 print("Finished getting initial shadow state.")
                 if self._locked_data.shadow_value is not None:
-                    print("  Ignoring initial query because a delta event has already been received.")
+                    print(
+                        "  Ignoring initial query because a delta event has already been received."
+                    )
                     return
 
             if response.state:
@@ -182,10 +220,16 @@ class IoTThing:
                     value = response.state.reported.get(self._property)
                     if value:
                         print("  Shadow contains reported value '{}'.".format(value))
-                        self.set_local_value_due_to_initial_query(response.state.reported[self._property])
+                        self.set_local_value_due_to_initial_query(
+                            response.state.reported[self._property]
+                        )
                         return
 
-            print("  Shadow document lacks '{}' property. Setting defaults...".format(self._property))
+            print(
+                "  Shadow document lacks '{}' property. Setting defaults...".format(
+                    self._property
+                )
+            )
             self.change_shadow_value(self._default_value)
             return
 
@@ -200,15 +244,20 @@ class IoTThing:
                 try:
                     self._locked_data.request_tokens.remove(error.client_token)
                 except KeyError:
-                    print("Ignoring get_shadow_rejected message due to unexpected token.")
+                    print(
+                        "Ignoring get_shadow_rejected message due to unexpected token."
+                    )
                     return
 
             if error.code == 404:
                 print("Thing has no shadow document. Creating with defaults...")
                 self.change_shadow_value(self._default_value)
             else:
-                logging.error("Get request was rejected. code:{} message:'{}'".format(
-                    error.code, error.message))
+                logging.error(
+                    "Get request was rejected. code:{} message:'{}'".format(
+                        error.code, error.message
+                    )
+                )
 
         except Exception as e:
             logging.error("_on_get_shadow_rejected", e)
@@ -220,12 +269,20 @@ class IoTThing:
             if delta.state and (self._property in delta.state):
                 value = delta.state[self._property]
                 if value is None:
-                    print("  Delta reports that '{}' was deleted. Resetting defaults...".format(self._property))
+                    print(
+                        "  Delta reports that '{}' was deleted. Resetting defaults...".format(
+                            self._property
+                        )
+                    )
                     self.change_shadow_value(self._default_value)
                     return
                 else:
-                    print("  Delta reports that desired value is '{}'. Changing local value...".format(value))
-                    if (delta.client_token is not None):
+                    print(
+                        "  Delta reports that desired value is '{}'. Changing local value...".format(
+                            value
+                        )
+                    )
+                    if delta.client_token is not None:
                         print("  ClientToken is: " + delta.client_token)
                     self.change_shadow_value(value)
                 if self._callback:
@@ -245,7 +302,6 @@ class IoTThing:
             print("Failed to publish update request.")
             logging.error("_on_publish_update_shadow", e)
 
-
     def _on_update_shadow_accepted(self, response):
         # type: (iotshadow.UpdateShadowResponse) -> None
         try:
@@ -254,18 +310,25 @@ class IoTThing:
                 try:
                     self._locked_data.request_tokens.remove(response.client_token)
                 except KeyError:
-                    print("Ignoring update_shadow_accepted message due to unexpected token.")
+                    print(
+                        "Ignoring update_shadow_accepted message due to unexpected token."
+                    )
                     return
 
             try:
                 if response.state.reported is not None:
                     if self._property in response.state.reported:
-                        print("Finished updating reported shadow value to '{}'.".format(
-                            response.state.reported[self._property]))  # type: ignore
+                        print(
+                            "Finished updating reported shadow value to '{}'.".format(
+                                response.state.reported[self._property]
+                            )
+                        )  # type: ignore
                     else:
                         print("Could not find shadow property with name: '{}'.".format(self._property))  # type: ignore
                 else:
-                    print("Shadow states cleared.")  # when the shadow states are cleared, reported and desired are set to None
+                    print(
+                        "Shadow states cleared."
+                    )  # when the shadow states are cleared, reported and desired are set to None
             except BaseException:
                 exit("Updated shadow is missing the target property")
 
@@ -280,11 +343,16 @@ class IoTThing:
                 try:
                     self._locked_data.request_tokens.remove(error.client_token)
                 except KeyError:
-                    print("Ignoring update_shadow_rejected message due to unexpected token.")
+                    print(
+                        "Ignoring update_shadow_rejected message due to unexpected token."
+                    )
                     return
 
-            exit("Update request was rejected. code:{} message:'{}'".format(
-                error.code, error.message))
+            exit(
+                "Update request was rejected. code:{} message:'{}'".format(
+                    error.code, error.message
+                )
+            )
 
         except Exception as e:
             logging.error("_on_update_shadow_rejected", e)
@@ -317,7 +385,8 @@ class IoTThing:
                     reported=None,
                     desired=None,
                     reported_is_nullable=True,
-                    desired_is_nullable=True)
+                    desired_is_nullable=True,
+                )
                 request = iotshadow.UpdateShadowRequest(
                     thing_name=self._thing_name,
                     state=tmp_state,
@@ -339,7 +408,9 @@ class IoTThing:
                     client_token=token,
                 )
 
-            future = self._shadow_client.publish_update_shadow(request, mqtt.QoS.AT_LEAST_ONCE)
+            future = self._shadow_client.publish_update_shadow(
+                request, mqtt.QoS.AT_LEAST_ONCE
+            )
 
             self._locked_data.request_tokens.add(token)
 

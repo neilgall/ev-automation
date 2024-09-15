@@ -31,6 +31,7 @@ def get_slot(slots, name, default_value):
 
 class LaunchRequestHandler(AbstractRequestHandler):
     """Handler for Skill Launch."""
+
     def can_handle(self, handler_input):
         # type: (HandlerInput) -> bool
 
@@ -41,15 +42,15 @@ class LaunchRequestHandler(AbstractRequestHandler):
         speak_output = "Welcome. Which would you like to try?"
 
         return (
-            handler_input.response_builder
-                .speak(speak_output)
-                .ask(speak_output)
-                .response
+            handler_input.response_builder.speak(speak_output)
+            .ask(speak_output)
+            .response
         )
 
 
 class HelpIntentHandler(AbstractRequestHandler):
     """Handler for Help Intent."""
+
     def can_handle(self, handler_input):
         # type: (HandlerInput) -> bool
         return ask_utils.is_intent_name("AMAZON.HelpIntent")(handler_input)
@@ -59,32 +60,31 @@ class HelpIntentHandler(AbstractRequestHandler):
         speak_output = "You can say hello to me! How can I help?"
 
         return (
-            handler_input.response_builder
-                .speak(speak_output)
-                .ask(speak_output)
-                .response
+            handler_input.response_builder.speak(speak_output)
+            .ask(speak_output)
+            .response
         )
 
 
 class CancelOrStopIntentHandler(AbstractRequestHandler):
     """Single handler for Cancel and Stop Intent."""
+
     def can_handle(self, handler_input):
         # type: (HandlerInput) -> bool
-        return (ask_utils.is_intent_name("AMAZON.CancelIntent")(handler_input) or
-                ask_utils.is_intent_name("AMAZON.StopIntent")(handler_input))
+        return ask_utils.is_intent_name("AMAZON.CancelIntent")(
+            handler_input
+        ) or ask_utils.is_intent_name("AMAZON.StopIntent")(handler_input)
 
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
         speak_output = "Goodbye!"
 
-        return (
-            handler_input.response_builder
-                .speak(speak_output)
-                .response
-        )
+        return handler_input.response_builder.speak(speak_output).response
+
 
 class FallbackIntentHandler(AbstractRequestHandler):
     """Single handler for Fallback Intent."""
+
     def can_handle(self, handler_input):
         # type: (HandlerInput) -> bool
         return ask_utils.is_intent_name("AMAZON.FallbackIntent")(handler_input)
@@ -92,7 +92,9 @@ class FallbackIntentHandler(AbstractRequestHandler):
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
         logger.info("In FallbackIntentHandler")
-        speech = "Hmm, I'm not sure. You can say Hello or Help. What would you like to do?"
+        speech = (
+            "Hmm, I'm not sure. You can say Hello or Help. What would you like to do?"
+        )
         reprompt = "I didn't catch that. What can I help you with?"
 
         return handler_input.response_builder.speak(speech).ask(reprompt).response
@@ -100,6 +102,7 @@ class FallbackIntentHandler(AbstractRequestHandler):
 
 class SessionEndedRequestHandler(AbstractRequestHandler):
     """Handler for Session End."""
+
     def can_handle(self, handler_input):
         # type: (HandlerInput) -> bool
         return ask_utils.is_request_type("SessionEndedRequest")(handler_input)
@@ -118,6 +121,7 @@ class IntentReflectorHandler(AbstractRequestHandler):
     for your intents by defining them above, then also adding them to the request
     handler chain below.
     """
+
     def can_handle(self, handler_input):
         # type: (HandlerInput) -> bool
         return ask_utils.is_request_type("IntentRequest")(handler_input)
@@ -128,10 +132,9 @@ class IntentReflectorHandler(AbstractRequestHandler):
         speak_output = "You just triggered " + intent_name + "."
 
         return (
-            handler_input.response_builder
-                .speak(speak_output)
-                # .ask("add a reprompt if you want to keep the session open for the user to respond")
-                .response
+            handler_input.response_builder.speak(speak_output)
+            # .ask("add a reprompt if you want to keep the session open for the user to respond")
+            .response
         )
 
 
@@ -140,6 +143,7 @@ class CatchAllExceptionHandler(AbstractExceptionHandler):
     stating the request handler chain is not found, you have not implemented a handler for
     the intent being invoked or included it in the skill builder below.
     """
+
     def can_handle(self, handler_input, exception):
         # type: (HandlerInput, Exception) -> bool
         return True
@@ -151,10 +155,9 @@ class CatchAllExceptionHandler(AbstractExceptionHandler):
         speak_output = "Sorry, I had trouble doing what you asked. Please try again."
 
         return (
-            handler_input.response_builder
-                .speak(speak_output)
-                .ask(speak_output)
-                .response
+            handler_input.response_builder.speak(speak_output)
+            .ask(speak_output)
+            .response
         )
 
 
@@ -163,10 +166,12 @@ class HvacIntentHandler(AbstractRequestHandler):
 
     IS_ENABLE = ask_utils.is_intent_name("enable_hvac")
     IS_DISABLE = ask_utils.is_intent_name("disable_hvac")
-    
+
     def can_handle(self, handler_input):
         # type: (HandlerInput) -> bool
-        return HvacIntentHandler.IS_ENABLE(handler_input) or HvacIntentHandler.IS_DISABLE(handler_input)
+        return HvacIntentHandler.IS_ENABLE(
+            handler_input
+        ) or HvacIntentHandler.IS_DISABLE(handler_input)
 
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
@@ -175,12 +180,8 @@ class HvacIntentHandler(AbstractRequestHandler):
             speak_output = "Car heating started"
         else:
             speak_output = "Car heating stopped"
-            
-        return (
-            handler_input.response_builder
-                .speak(speak_output)
-                .response
-        )
+
+        return handler_input.response_builder.speak(speak_output).response
 
 
 class ChargeLevelIntentHandler(AbstractRequestHandler):
@@ -204,10 +205,9 @@ class ChargeLevelIntentHandler(AbstractRequestHandler):
         speak_output = f"Ok, your car will charge to {intent.battery_percentage} percent on {intent.date}"
 
         return (
-            handler_input.response_builder
-                .speak(speak_output)
-                .set_card(SimpleCard("Car Charging", speak_output))
-                .response
+            handler_input.response_builder.speak(speak_output)
+            .set_card(SimpleCard("Car Charging", speak_output))
+            .response
         )
 
 
@@ -224,17 +224,18 @@ class CarStatusIntentHandler(AbstractRequestHandler):
         if battery_level.battery_percentage is None:
             speak_output = "I'm sorry, I wasn't able to read the current battery level"
         else:
-            speak_output = f"Your car battery is at {battery_level.battery_percentage} percent."
+            speak_output = (
+                f"Your car battery is at {battery_level.battery_percentage} percent."
+            )
 
         if battery_level.range_km is not None:
             range_miles = int(battery_level.range_km / 1.609344)
             speak_output += f" The estimated range is {range_miles} miles."
 
         return (
-            handler_input.response_builder
-                .speak(speak_output)
-                .set_card(SimpleCard("Car Battery", speak_output))
-                .response
+            handler_input.response_builder.speak(speak_output)
+            .set_card(SimpleCard("Car Battery", speak_output))
+            .response
         )
 
 
@@ -253,7 +254,9 @@ sb.add_request_handler(ChargeLevelIntentHandler())
 sb.add_request_handler(CarStatusIntentHandler())
 sb.add_request_handler(FallbackIntentHandler())
 sb.add_request_handler(SessionEndedRequestHandler())
-sb.add_request_handler(IntentReflectorHandler()) # make sure IntentReflectorHandler is last so it doesn't override your custom intent handlers
+sb.add_request_handler(
+    IntentReflectorHandler()
+)  # make sure IntentReflectorHandler is last so it doesn't override your custom intent handlers
 sb.add_exception_handler(CatchAllExceptionHandler())
 
 lambda_handler = sb.lambda_handler()

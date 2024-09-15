@@ -13,9 +13,7 @@ class ChargeIntent:
 
 
 def charge_intent(
-    target_charge_level: int,
-    target_charge_date: dt.date,
-    now: dt.datetime
+    target_charge_level: int, target_charge_date: dt.date, now: dt.datetime
 ) -> ChargeIntent:
     if now.hour < 5:
         tomorrow = now.date()
@@ -27,8 +25,11 @@ def charge_intent(
     return ChargeIntent(target_charge_level, target_charge_date)
 
 
-def prune_charge_intent_dict(intent: dict[str, int], now: dt.datetime) -> dict[str, int]:
+def prune_charge_intent_dict(
+    intent: dict[str, int], now: dt.datetime
+) -> dict[str, int]:
     today = now.date()
+
     def expired(date):
         try:
             date = dt.date.fromisoformat(date)
@@ -36,8 +37,4 @@ def prune_charge_intent_dict(intent: dict[str, int], now: dt.datetime) -> dict[s
         except:
             return True
 
-    return {
-        (date): charge
-        for date,charge in intent.items()
-        if not expired(date)
-    }
+    return {(date): charge for date, charge in intent.items() if not expired(date)}

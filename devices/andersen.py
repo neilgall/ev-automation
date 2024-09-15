@@ -13,7 +13,11 @@ class AndersenA2:
     def get_solar_override(self) -> bool:
         try:
             solar = self._a2.get_device_solar(self._deviceId)
-            start_str = solar.get("getDevice", {}).get("deviceInfo", {}).get("solarOverrideStart", None)
+            start_str = (
+                solar.get("getDevice", {})
+                .get("deviceInfo", {})
+                .get("solarOverrideStart", None)
+            )
             if not start_str:
                 return False
             start = dt.datetime.fromisoformat(start_str).replace(tzinfo=None)
@@ -42,7 +46,7 @@ class AndersenA2:
                 deviceId=self._deviceId,
                 override=override,
                 chargeAlways=charge_from_grid,
-                maxGridChargePercent=100 if charge_from_grid else 0
+                maxGridChargePercent=100 if charge_from_grid else 0,
             )
         except Exception as e:
             logging.error(f"failed to set charge mode: {e}")
@@ -50,11 +54,12 @@ class AndersenA2:
 
 if __name__ == "__main__":
     import dotenv, os, json
+
     dotenv.load_dotenv()
 
     a2 = AndersenA2(
         os.getenv("ANDERSEN_USERNAME"),
         os.getenv("ANDERSEN_PASSWORD"),
-        os.getenv("ANDERSEN_DEVICE_NAME")
+        os.getenv("ANDERSEN_DEVICE_NAME"),
     )
     print(json.dumps(a2._a2.get_device_status(deviceId=a2._deviceId)))
