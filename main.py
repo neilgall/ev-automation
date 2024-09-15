@@ -71,43 +71,47 @@ def init_iot() -> Tuple[IoTClient, IoTThing, IoTThing]:
             await vehicle.set_hvac_state(state, 19)
 
     def heater_state_updated(state: str):
-       asyncio.run(enable_heater(state == "on"))
+        asyncio.run(enable_heater(state == "on"))
 
     iot_client = IoTClient()
     heater = iot_client.register_thing(
         thing_name="car_heater",
         property="state",
         default_value="off",
-        callback=heater_state_updated
+        callback=heater_state_updated,
     )
     status = iot_client.register_thing(
-        thing_name="car_status",
-        property="state",
-        default_value={}
+        thing_name="car_status", property="state", default_value={}
     )
     return iot_client, heater, status
 
 
-async def get_status(vehicle: Vehicle):
+async def get_status(vehicle: Vehicle) -> Status:
     battery = await vehicle.get_battery_status()
     hvac = await vehicle.get_hvac_state()
     status = Status(
         battery_level=battery.batteryLevel,
         estimated_range=battery.batteryAutonomy,
         hvac_state=hvac,
-        now=dt.datetime.now()
+        now=dt.datetime.now(),
     )
     logging.info(f"{status}")
     return status
 
 
-def get_intent(env: Environment) -> Intent:
+def get_intent(env: Environment, status: Status) -> Intent:
     data = iot_data.get_thing_shadow(thingName="car_status", shadowName="charge_intent")
-    shadow = json.load(data['payload'])
+    shadow = json.load(data["payload"])
     today = dt.datetime.now()
     if today.time() > env.ready_by:
         today += dt.timedelta(days=1)
-    max_charge_today = shadow.get("state", {}).get("desired", {}).get(today.date().isoformat(), "60")
+    default_charge_level = 60 if status.now.month in [4, 5, 6, 7, 8, 9] else 75
+    max_charge_today = (
+        shadow
+        .get("state", {})
+        .get("desired", {})
+        .get(today.date().isoformat(), str(default_charge_level))
+    )
     logging.info(f"maximum requested charge on {today.date()} is {max_charge_today}")
     return Intent(max_grid_charge=int(max_charge_today))
 
@@ -126,10 +130,12 @@ async def main():
         if status.hvac_state:
             get_andersen_a2().set_charge_from_grid(True)
         iot_heater.change_shadow_value("on" if status.hvac_state else "off")
-        iot_status.change_shadow_value({
-            "battery_level": status.battery_level,
-            "estimated_range": status.estimated_range
-        })
+        iot_status.change_shadow_value(
+            {
+                "battery_level": status.battery_level,
+                "estimated_range": status.estimated_range,
+            }
+        )
 
     async def apply_config(vehicle: Vehicle, config: Config):
         andersen = get_andersen_a2()
@@ -144,19 +150,19 @@ async def main():
                 await vehicle.enable_charge_schedule(False)
         else:
             await vehicle.enable_charge_schedule(False)
-        
-    async def update():    
+
+    async def update():
         async with aiohttp.ClientSession() as session:
             env = Environment(
                 cheap_rate_start=dt.time(hour=0, minute=0),
                 cheap_rate_end=dt.time(hour=4, minute=59),
                 ready_by=dt.time(hour=7, minute=0),
                 battery_capacity_kwh=60,
-                charge_rate_kw=7.2
+                charge_rate_kw=7.2,
             )
             vehicle = await get_vehicle(session)
             status = await get_status(vehicle)
-            intent = get_intent(env)
+            intent = get_intent(env, status)
             config = get_config(env, intent, status)
 
             await apply_config(vehicle, config)
@@ -166,7 +172,7 @@ async def main():
         await update()
     else:
         msh = Scheduler(locale="en_GB")
-        for minute in [0,15,30,45]:
+        for minute in [0, 15, 30, 45]:
             msh.add_job(CronJob().every().hour.at(f":{minute}").go(update))
         await msh.start()
 
