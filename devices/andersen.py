@@ -53,13 +53,16 @@ class AndersenA2:
 
 
 if __name__ == "__main__":
-    import dotenv, os, json
+    import dotenv, os, sys
 
     dotenv.load_dotenv()
+    logging.basicConfig(level=logging.DEBUG)
 
     a2 = AndersenA2(
         os.getenv("ANDERSEN_USERNAME"),
         os.getenv("ANDERSEN_PASSWORD"),
         os.getenv("ANDERSEN_DEVICE_NAME"),
     )
-    print(json.dumps(a2._a2.get_device_status(deviceId=a2._deviceId)))
+    enable = "on" in sys.argv
+    a2.set_charge_from_grid(enable)
+
