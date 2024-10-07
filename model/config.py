@@ -13,7 +13,7 @@ class Config:
 
 
 def get_config(env: Environment, intent: Intent, status: Status) -> Config:
-    if status.battery_level >= intent.max_grid_charge:
+    if intent.max_grid_charge < 100 and intent.max_grid_charge < status.battery_level:
         return Config(charge_from_grid=False, charge_schedule=None)
 
     schedule = charge_schedule(env, intent, status)
